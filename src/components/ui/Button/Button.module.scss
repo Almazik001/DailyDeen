@@ -1,0 +1,16 @@
+.myButton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    background-color: #F26E62;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(242, 110, 98, 0.24);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.myButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(242, 110, 98, 0.3);
+}
