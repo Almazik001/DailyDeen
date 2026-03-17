@@ -1,0 +1,298 @@
+.page {
+  animation: authPageFade 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding: 32px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(120, 152, 255, 0.16), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 151, 168, 0.18), transparent 28%),
+    #fbfbfd;
+}
+
+.pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+  background-image:
+    radial-gradient(circle at 24px 24px, rgba(98, 105, 125, 0.11) 2px, transparent 2px),
+    linear-gradient(rgba(120, 126, 147, 0.08) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(120, 126, 147, 0.08) 2px, transparent 2px);
+  background-size: 82px 82px, 82px 82px, 82px 82px;
+  background-position: 0 0, 0 0, 0 0;
+  animation: authPatternFloat 18s linear infinite;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 64px);
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+  align-items: center;
+  gap: 40px;
+}
+
+.reverse {
+  grid-template-columns: minmax(320px, 1fr) minmax(300px, 1fr);
+}
+
+.reverse .formColumn {
+  order: 2;
+}
+
+.reverse .artColumn {
+  order: 1;
+}
+
+.formColumn,
+.artColumn {
+  min-width: 0;
+}
+
+.formColumn {
+  display: flex;
+  justify-content: center;
+}
+
+.formCard {
+  width: min(100%, 560px);
+  padding: 28px;
+  border: 1px solid rgba(116, 124, 146, 0.16);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.54);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 70px rgba(50, 60, 92, 0.08);
+  animation: authCardRise 0.9s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.themeSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 6px;
+  border: 1px solid rgba(116, 124, 146, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 24px rgba(50, 60, 92, 0.08);
+  animation: authTitleReveal 0.68s 0.12s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.themeButton {
+  min-width: 94px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #5f6778;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.themeButton:hover {
+  transform: translateY(-1px);
+  color: #2a3140;
+}
+
+.themeButtonActive {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ef7368, #e7594a);
+  box-shadow: 0 12px 24px rgba(231, 89, 74, 0.22);
+}
+
+.title {
+  margin: 0 0 24px;
+  color: #202430;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  line-height: 1;
+  font-weight: 700;
+  animation: authTitleReveal 0.7s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.artColumn {
+  display: flex;
+  justify-content: center;
+}
+
+.artCard {
+  width: min(100%, 620px);
+  padding: 20px;
+  animation: authArtworkReveal 1s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:global(:root[data-theme='soft-dark']) .page {
+  background:
+    radial-gradient(circle at top left, rgba(90, 108, 192, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(228, 104, 129, 0.18), transparent 28%),
+    #121720;
+}
+
+:global(:root[data-theme='soft-dark']) .pattern {
+  opacity: 0.28;
+}
+
+:global(:root[data-theme='soft-dark']) .formCard {
+  border-color: rgba(108, 119, 148, 0.22);
+  background: rgba(25, 31, 43, 0.72);
+  box-shadow: 0 28px 70px rgba(6, 10, 18, 0.34);
+}
+
+:global(:root[data-theme='soft-dark']) .themeSwitch {
+  border-color: rgba(108, 119, 148, 0.2);
+  background: rgba(16, 20, 29, 0.82);
+}
+
+:global(:root[data-theme='soft-dark']) .themeButton {
+  color: #a9b3c5;
+}
+
+:global(:root[data-theme='soft-dark']) .themeButton:hover {
+  color: #edf1f7;
+}
+
+:global(:root[data-theme='soft-dark']) .title {
+  color: #edf1f7;
+}
+
+.illustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 22px 45px rgba(72, 90, 153, 0.14));
+  transform-origin: center bottom;
+  animation: authIllustrationFloat 6s ease-in-out 1.1s infinite;
+}
+
+@keyframes authPageFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes authCardRise {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authTitleReveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes authArtworkReveal {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes authIllustrationFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes authPatternFloat {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(10px, -8px, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 980px) {
+  .page {
+    padding: 20px;
+  }
+
+  .shell,
+  .reverse {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .reverse .formColumn,
+  .reverse .artColumn {
+    order: initial;
+  }
+
+  .artCard {
+    max-width: 440px;
+  }
+}
+
+@media (max-width: 640px) {
+  .formCard {
+    padding: 22px 18px;
+    border-radius: 22px;
+  }
+
+  .themeSwitch {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .themeButton {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .title {
+    margin-bottom: 18px;
+    font-size: 1.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .pattern,
+  .formCard,
+  .title,
+  .artCard,
+  .illustration {
+    animation: none !important;
+  }
+}

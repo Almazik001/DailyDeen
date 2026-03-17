@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import Button from '../../ui/Button/Button'
-import Input from '../../ui/Input/Input'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { t } from '../../../features/settings/translations'
 import BellIcon from '../../../assets/icons/bell-icon.svg'
 import Calendar from '../../../assets/icons/calendar-icon.svg'
 import Search from '../../../assets/icons/search-icon.svg'
+import Button from '../../ui/Button/Button'
+import Input from '../../ui/Input/Input'
 import type { AppView } from '../Sidebar/navigation'
 import { headerBrandMap } from '../Sidebar/navigation'
 import './Header.module.scss'
 
 type HeaderProps = {
   currentView: AppView
+  currentLanguage: LanguageMode
 }
 
 type HeaderPopover = 'notifications' | 'calendar' | null
@@ -57,6 +60,18 @@ const notifications: NotificationItem[] = [
   },
 ]
 
+const weekdayMap: Record<LanguageMode, string[]> = {
+  english: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+  russian: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'],
+  kazakh: ['ДС', 'СС', 'СР', 'БС', 'ЖМ', 'СБ', 'ЖС'],
+}
+
+const localeMap: Record<LanguageMode, string> = {
+  english: 'en-US',
+  russian: 'ru-RU',
+  kazakh: 'kk-KZ',
+}
+
 const calendarDays = Array.from({ length: 30 }, (_, index) => index + 1)
 
 function BackArrowIcon() {
@@ -73,10 +88,29 @@ function BackArrowIcon() {
   )
 }
 
-const Header = ({ currentView }: HeaderProps) => {
+const Header = ({ currentView, currentLanguage }: HeaderProps) => {
   const brand = headerBrandMap[currentView]
   const [openPopover, setOpenPopover] = useState<HeaderPopover>(null)
   const toolsRef = useRef<HTMLDivElement | null>(null)
+
+  const formattedDate = useMemo(() => {
+    const date = new Date('2023-06-20T10:00:00')
+    const locale = localeMap[currentLanguage]
+
+    return {
+      weekday: new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date),
+      shortDate: new Intl.DateTimeFormat(locale).format(date),
+      longDate: new Intl.DateTimeFormat(locale, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(date),
+      monthLabel: new Intl.DateTimeFormat(locale, {
+        month: 'long',
+        year: 'numeric',
+      }).format(date),
+    }
+  }, [currentLanguage])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -117,7 +151,7 @@ const Header = ({ currentView }: HeaderProps) => {
           event.preventDefault()
         }}
       >
-        <Input placeholder="Search your task here..." />
+        <Input placeholder={t(currentLanguage, 'header.search')} />
         <Button aria-label="Search">
           <img src={Search} alt="search icon" style={{ width: 14, height: 14 }} />
         </Button>
@@ -129,8 +163,12 @@ const Header = ({ currentView }: HeaderProps) => {
             <Button
               aria-expanded={openPopover === 'notifications'}
               aria-haspopup="dialog"
-              aria-label="Notifications"
-              className={openPopover === 'notifications' ? 'header-icon-trigger is-active' : 'header-icon-trigger'}
+              aria-label={t(currentLanguage, 'header.notifications')}
+              className={
+                openPopover === 'notifications'
+                  ? 'header-icon-trigger is-active'
+                  : 'header-icon-trigger'
+              }
               onClick={() => {
                 togglePopover('notifications')
               }}
@@ -139,16 +177,24 @@ const Header = ({ currentView }: HeaderProps) => {
             </Button>
 
             {openPopover === 'notifications' ? (
-              <div className="header-card header-card--notifications" role="dialog" aria-label="Notifications">
+              <div
+                className="header-card header-card--notifications"
+                role="dialog"
+                aria-label={t(currentLanguage, 'header.notifications')}
+              >
                 <div className="header-card__top">
                   <div>
-                    <h3 className="header-card__title">Notifications</h3>
-                    <p className="header-card__subtitle">Today</p>
+                    <h3 className="header-card__title">
+                      {t(currentLanguage, 'header.notifications')}
+                    </h3>
+                    <p className="header-card__subtitle">
+                      {t(currentLanguage, 'common.today')}
+                    </p>
                   </div>
                   <button
                     className="header-card__back"
                     type="button"
-                    aria-label="Close notifications"
+                    aria-label={t(currentLanguage, 'header.closeNotifications')}
                     onClick={() => {
                       setOpenPopover(null)
                     }}
@@ -183,23 +229,37 @@ const Header = ({ currentView }: HeaderProps) => {
             <Button
               aria-expanded={openPopover === 'calendar'}
               aria-haspopup="dialog"
-              aria-label="Calendar"
-              className={openPopover === 'calendar' ? 'header-icon-trigger is-active' : 'header-icon-trigger'}
+              aria-label={t(currentLanguage, 'header.calendar')}
+              className={
+                openPopover === 'calendar'
+                  ? 'header-icon-trigger is-active'
+                  : 'header-icon-trigger'
+              }
               onClick={() => {
                 togglePopover('calendar')
               }}
             >
-              <img src={Calendar} alt="calendar icon" style={{ width: 14, height: 14 }} />
+              <img
+                src={Calendar}
+                alt="calendar icon"
+                style={{ width: 14, height: 14 }}
+              />
             </Button>
 
             {openPopover === 'calendar' ? (
-              <div className="header-card header-card--calendar" role="dialog" aria-label="Calendar">
+              <div
+                className="header-card header-card--calendar"
+                role="dialog"
+                aria-label={t(currentLanguage, 'header.calendar')}
+              >
                 <div className="header-card__top header-card__top--calendar">
-                  <h3 className="header-card__title">Calendar</h3>
+                  <h3 className="header-card__title">
+                    {t(currentLanguage, 'header.calendar')}
+                  </h3>
                   <button
                     className="header-card__back"
                     type="button"
-                    aria-label="Close calendar"
+                    aria-label={t(currentLanguage, 'header.closeCalendar')}
                     onClick={() => {
                       setOpenPopover(null)
                     }}
@@ -210,25 +270,37 @@ const Header = ({ currentView }: HeaderProps) => {
 
                 <div className="calendar-card__head">
                   <button className="calendar-card__date" type="button">
-                    June 6, 2023
+                    {formattedDate.longDate}
                   </button>
-                  <button className="calendar-card__close" type="button" onClick={() => setOpenPopover(null)}>
+                  <button
+                    className="calendar-card__close"
+                    type="button"
+                    onClick={() => setOpenPopover(null)}
+                  >
                     x
                   </button>
                 </div>
 
                 <div className="calendar-card__month">
-                  <button className="calendar-card__nav" type="button" aria-label="Previous month">
+                  <button
+                    className="calendar-card__nav"
+                    type="button"
+                    aria-label="Previous month"
+                  >
                     <BackArrowIcon />
                   </button>
-                  <span>June 2023</span>
-                  <button className="calendar-card__nav is-next" type="button" aria-label="Next month">
+                  <span>{formattedDate.monthLabel}</span>
+                  <button
+                    className="calendar-card__nav is-next"
+                    type="button"
+                    aria-label="Next month"
+                  >
                     <BackArrowIcon />
                   </button>
                 </div>
 
                 <div className="calendar-card__weekdays">
-                  {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
+                  {weekdayMap[currentLanguage].map((day) => (
                     <span key={day}>{day}</span>
                   ))}
                 </div>
@@ -254,8 +326,8 @@ const Header = ({ currentView }: HeaderProps) => {
         </div>
 
         <div className="header-data">
-          <p>Tuesday</p>
-          <span>20/06/2023</span>
+          <p>{formattedDate.weekday}</p>
+          <span>{formattedDate.shortDate}</span>
         </div>
       </div>
     </header>

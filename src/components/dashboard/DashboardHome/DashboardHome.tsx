@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import type { StoredUser } from '../../../features/auth/authStorage'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { t } from '../../../features/settings/translations'
 import InviteMembersModal from '../../../features/invite-members/InviteMembersModal'
 import CompletedTasks from '../CompletedTasks/CompletedTasks'
 import TaskStatus from '../TaskStatus/TaskStatus'
@@ -37,6 +40,11 @@ const teamMembers: TeamMember[] = [
       'linear-gradient(135deg, #34353c 0%, #5c5f67 50%, #17181c 100%)',
   },
 ]
+
+type DashboardHomeProps = {
+  currentUser: StoredUser | null
+  language: LanguageMode
+}
 
 function InviteIcon() {
   return (
@@ -78,14 +86,16 @@ function WaveIcon() {
   )
 }
 
-const DashboardHome = () => {
+const DashboardHome = ({ currentUser, language }: DashboardHomeProps) => {
   const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const welcomeName =
+    currentUser?.firstName?.trim() || currentUser?.username || 'guest'
 
   return (
     <>
       <div className="welcome-bar">
         <h1 className="welcome-bar__title">
-          Welcome back, amanuel
+          {t(language, 'dashboard.welcome', { name: welcomeName })}
           <WaveIcon />
         </h1>
 
@@ -110,7 +120,7 @@ const DashboardHome = () => {
             }}
           >
             <InviteIcon />
-            Invite
+            {t(language, 'dashboard.invite')}
           </button>
         </div>
       </div>

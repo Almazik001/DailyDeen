@@ -1,0 +1,49 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(33, 35, 42, 0.68);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  width: min(100%, 760px);
+  min-height: min(72vh, 470px);
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 18px 22px 22px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 26px 56px rgba(23, 30, 52, 0.22);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.body {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 16px;
+  }
+
+  .panel {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

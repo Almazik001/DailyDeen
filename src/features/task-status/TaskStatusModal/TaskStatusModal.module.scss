@@ -1,0 +1,84 @@
+.title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px;
+  color: #202430;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 36px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ef7368, rgba(239, 115, 104, 0.12));
+}
+
+.backButton {
+  align-self: center;
+  color: #1e232d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.frame {
+  min-height: 210px;
+  padding: 10px;
+  border: 1px solid #d8dde8;
+  background: #fff;
+}
+
+.field {
+  max-width: 370px;
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  color: #202430;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 26px !important;
+  border: 1px solid #cfd6e3 !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  font-size: 0.68rem !important;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionButton {
+  width: auto !important;
+  min-width: 54px;
+  height: 22px !important;
+  padding: 0 14px;
+  border-radius: 3px !important;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 600;
+  box-shadow: none !important;
+}
+
+.cancelButton {
+  background-color: #dd6a36 !important;
+}

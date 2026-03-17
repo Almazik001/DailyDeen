@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import TaskFormModal, {
+  type PriorityKey,
+  type TaskFormState,
+} from '../../features/task-form/TaskFormModal'
 
 type MyTaskItem = {
   id: string
@@ -17,7 +21,31 @@ type MyTaskItem = {
   deadline: string
 }
 
-const myTasks: MyTaskItem[] = [
+const priorityMeta: Record<
+  PriorityKey,
+  { textColor: string; dotColor: string; thumbnail: string }
+> = {
+  Extreme: {
+    textColor: '#FF6B61',
+    dotColor: '#FF5B5B',
+    thumbnail:
+      'linear-gradient(145deg, #3a2d34 0%, #1b1d2d 52%, #b8724d 100%)',
+  },
+  Moderate: {
+    textColor: '#7CB3FF',
+    dotColor: '#7CB3FF',
+    thumbnail:
+      'linear-gradient(145deg, #20243a 0%, #101522 46%, #5873a5 100%)',
+  },
+  Low: {
+    textColor: '#68B84B',
+    dotColor: '#68B84B',
+    thumbnail:
+      'linear-gradient(145deg, #62543f 0%, #94805d 42%, #6f8d49 100%)',
+  },
+}
+
+const initialMyTasks: MyTaskItem[] = [
   {
     id: 'submit-documents',
     title: 'Submit Documents',
@@ -108,10 +136,82 @@ function EditIcon() {
   )
 }
 
+function parseDisplayDate(value: string) {
+  const [day, month, year] = value.split('/')
+
+  if (!day || !month || !year) {
+    return '2023-06-20'
+  }
+
+  return `${year}-${month}-${day}`
+}
+
+function formatDate(value: string) {
+  const date = value ? new Date(`${value}T00:00:00`) : new Date()
+  return new Intl.DateTimeFormat('en-GB').format(date)
+}
+
+function getFormStateFromTask(task: MyTaskItem): TaskFormState {
+  return {
+    title: task.title,
+    date: parseDisplayDate(task.createdAt),
+    priority: task.priority as PriorityKey,
+    description: task.taskDescription.join(' '),
+    imagePreview: task.thumbnail.startsWith('data:') ? task.thumbnail : '',
+    imageName: '',
+  }
+}
+
 const MyTaskPage = () => {
-  const [selectedTaskId, setSelectedTaskId] = useState(myTasks[0].id)
+  const [tasks, setTasks] = useState<MyTaskItem[]>(initialMyTasks)
+  const [selectedTaskId, setSelectedTaskId] = useState(initialMyTasks[0].id)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const selectedTask =
-    myTasks.find((task) => task.id === selectedTaskId) ?? myTasks[0]
+    tasks.find((task) => task.id === selectedTaskId) ?? tasks[0]
+
+  const handleEditSubmit = (formState: TaskFormState) => {
+    setTasks((current) =>
+      current.map((task) => {
+        if (task.id !== selectedTaskId) {
+          return task
+        }
+
+        const description =
+          formState.description.trim() || 'Task description will be added later.'
+
+        return {
+          ...task,
+          title: formState.title.trim(),
+          shortDescription: description,
+          priority: formState.priority,
+          priorityColor: priorityMeta[formState.priority].textColor,
+          createdAt: formatDate(formState.date),
+          thumbnail: formState.imagePreview || task.thumbnail,
+          taskTitle: `${formState.title.trim()}.`,
+          objective: description,
+          taskDescription: [description],
+        }
+      }),
+    )
+
+    setIsEditModalOpen(false)
+  }
+
+  const handleDeleteTask = () => {
+    if (tasks.length <= 1) {
+      return
+    }
+
+    const currentIndex = tasks.findIndex((task) => task.id === selectedTaskId)
+    const nextTask =
+      tasks[currentIndex + 1] ?? tasks[currentIndex - 1] ?? tasks[0]
+
+    setTasks((current) => current.filter((task) => task.id !== selectedTaskId))
+
+    if (nextTask) {
+      setSelectedTaskId(nextTask.id)
+    }
+  }
 
   return (
     <div className="my-task-layout">
@@ -119,7 +219,7 @@ const MyTaskPage = () => {
         <h2 className="section-title">My Tasks</h2>
 
         <div className="my-task-list">
-          {myTasks.map((task) => (
+          {tasks.map((task) => (
             <button
               key={task.id}
               className={`my-task-card${selectedTask.id === task.id ? ' is-active' : ''}`}
@@ -217,14 +317,37 @@ const MyTaskPage = () => {
         </div>
 
         <div className="my-task-detail__actions">
-          <button className="my-task-detail__action" type="button" aria-label="Delete task">
+          <button
+            className="my-task-detail__action"
+            type="button"
+            aria-label="Delete task"
+            onClick={handleDeleteTask}
+          >
             <TrashIcon />
           </button>
-          <button className="my-task-detail__action" type="button" aria-label="Edit task">
+          <button
+            className="my-task-detail__action"
+            type="button"
+            aria-label="Edit task"
+            onClick={() => {
+              setIsEditModalOpen(true)
+            }}
+          >
             <EditIcon />
           </button>
         </div>
       </section>
+
+      <TaskFormModal
+        isOpen={isEditModalOpen}
+        mode="edit"
+        initialState={getFormStateFromTask(selectedTask)}
+        priorityMeta={priorityMeta}
+        onClose={() => {
+          setIsEditModalOpen(false)
+        }}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   )
 }

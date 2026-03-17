@@ -1,0 +1,101 @@
+.section {
+  display: grid;
+  gap: 10px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  color: #202430;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tableShell {
+  overflow: hidden;
+  border: 1px solid #d9dee8;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #edf0f5;
+  text-align: left;
+  font-size: 0.74rem;
+}
+
+.table th {
+  color: #5c6473;
+  font-weight: 700;
+  background: #fafbfd;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table td {
+  color: #2c3340;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionButton {
+  min-width: 58px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: #fff;
+  background: linear-gradient(180deg, #ef733d 0%, #dd582d 100%);
+  box-shadow: 0 10px 18px rgba(221, 88, 45, 0.18);
+  font-size: 0.68rem;
+  font-weight: 600;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.actionButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.actionButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(221, 88, 45, 0.22);
+}
+
+.deleteButton {
+  background: linear-gradient(180deg, #ef8061 0%, #de5f44 100%);
+}
+
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: 9px 10px;
+    font-size: 0.7rem;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+}

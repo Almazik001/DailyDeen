@@ -29,6 +29,16 @@
   --duration-slow: 0.9s;
 }
 
+:root[data-theme='soft-dark'] {
+  color-scheme: dark;
+  --page-bg: #161a22;
+  --panel-bg: #202630;
+  --panel-border: #2f3743;
+  --soft-text: #a9b1c1;
+  --shadow-lg: 0 20px 44px rgba(5, 8, 14, 0.34);
+  --shadow-md: 0 12px 26px rgba(5, 8, 14, 0.28);
+}
+
 html {
   font-size: 16px;
 }
@@ -42,6 +52,16 @@ body {
     linear-gradient(180deg, #f7f9ff 0%, var(--page-bg) 100%);
   color: #161a22;
   line-height: 1.4;
+  transition:
+    background 0.32s var(--ease-soft),
+    color 0.24s var(--ease-soft);
+}
+
+:root[data-theme='soft-dark'] body {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(255, 255, 255, 0.05), transparent 24%),
+    linear-gradient(180deg, #11151c 0%, var(--page-bg) 100%);
+  color: #edf1f7;
 }
 
 #root {
@@ -171,6 +191,21 @@ select {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow-lg);
   animation: fade-slide-down var(--duration-base) var(--ease-smooth) both;
+  transition:
+    background-color 0.28s var(--ease-soft),
+    box-shadow 0.28s var(--ease-soft);
+}
+
+:root[data-theme='soft-dark'] .header {
+  background: rgba(22, 27, 36, 0.92);
+}
+
+:root[data-theme='soft-dark'] .header-logo {
+  color: #f4f7fc;
+}
+
+:root[data-theme='soft-dark'] .header-data p {
+  color: #f1f4fa;
 }
 
 .header-logo {
@@ -516,6 +551,9 @@ select {
   border-radius: 0 8px 8px 0;
   box-shadow: var(--shadow-lg);
   animation: fade-slide-left var(--duration-slow) 0.1s var(--ease-smooth) both;
+  transition:
+    background-color 0.28s var(--ease-soft),
+    box-shadow 0.28s var(--ease-soft);
 }
 
 .sidebar__profile {
@@ -549,6 +587,14 @@ select {
   font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.sidebar__avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-position: center;
+  background-size: cover;
 }
 
 .sidebar__name {
@@ -755,7 +801,43 @@ select {
   transition:
     transform 0.28s var(--ease-soft),
     box-shadow 0.28s var(--ease-soft),
-    border-color 0.28s var(--ease-soft);
+    border-color 0.28s var(--ease-soft),
+    background-color 0.28s var(--ease-soft);
+}
+
+:root[data-theme='soft-dark'] .dashboard-panel {
+  background: rgba(32, 38, 48, 0.96);
+  border-color: #2f3743;
+}
+
+:root[data-theme='soft-dark'] .sidebar {
+  background: #0d1016;
+}
+
+:root[data-theme='soft-dark'] .panel-title h2,
+:root[data-theme='soft-dark'] .welcome-bar__title,
+:root[data-theme='soft-dark'] .task-card__title,
+:root[data-theme='soft-dark'] .my-task-card__title,
+:root[data-theme='soft-dark'] .my-task-detail__summary h2,
+:root[data-theme='soft-dark'] .placeholder-card__title,
+:root[data-theme='soft-dark'] .status-card__label {
+  color: #f1f4fa;
+}
+
+:root[data-theme='soft-dark'] .task-card,
+:root[data-theme='soft-dark'] .my-task-card,
+:root[data-theme='soft-dark'] .invite-modal,
+:root[data-theme='soft-dark'] .task-modal {
+  background: #1b212b;
+  border-color: #303847;
+}
+
+:root[data-theme='soft-dark'] .panel-date,
+:root[data-theme='soft-dark'] .task-card__description,
+:root[data-theme='soft-dark'] .my-task-card__description,
+:root[data-theme='soft-dark'] .placeholder-card__description,
+:root[data-theme='soft-dark'] .my-task-detail__body {
+  color: #a8b0bf;
 }
 
 .dashboard-panel:hover {

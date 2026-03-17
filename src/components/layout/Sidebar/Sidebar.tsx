@@ -1,3 +1,6 @@
+import type { StoredUser } from '../../../features/auth/authStorage'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { getSidebarLabel, t } from '../../../features/settings/translations'
 import type { AppView } from './navigation'
 import { sidebarItems } from './navigation'
 import './Sidebar.module.scss'
@@ -5,12 +8,28 @@ import './Sidebar.module.scss'
 type SidebarProps = {
   activeView: AppView
   onNavigate: (view: AppView) => void
+  onLogout: () => void
+  currentUser: StoredUser | null
+  currentLanguage: LanguageMode
 }
 
-function ProfileAvatar() {
+function ProfileAvatar({
+  letter,
+  avatarUrl,
+}: {
+  letter: string
+  avatarUrl?: string
+}) {
   return (
     <div className="sidebar__avatar" aria-hidden="true">
-      <div className="sidebar__avatar-core">A</div>
+      {avatarUrl ? (
+        <div
+          className="sidebar__avatar-image"
+          style={{ backgroundImage: `url(${avatarUrl})` }}
+        />
+      ) : (
+        <div className="sidebar__avatar-core">{letter}</div>
+      )}
     </div>
   )
 }
@@ -37,8 +56,22 @@ function VitalIcon() {
 function MyTaskIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M6 8h4M6 11h6M6 5.5h2.5M11.5 6.2l1.3 1.3 2.6-2.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <rect
+        x="3"
+        y="3"
+        width="14"
+        height="14"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M6 8h4M6 11h6M6 5.5h2.5M11.5 6.2l1.3 1.3 2.6-2.9"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -46,7 +79,13 @@ function MyTaskIcon() {
 function CategoriesIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M6.5 5H16M6.5 10H16M6.5 15H16M3.5 4.3l1.4 1.4M3.5 9.3l1.4 1.4M3.5 14.3l1.4 1.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M6.5 5H16M6.5 10H16M6.5 15H16M3.5 4.3l1.4 1.4M3.5 9.3l1.4 1.4M3.5 14.3l1.4 1.4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -54,7 +93,10 @@ function CategoriesIcon() {
 function SettingsIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M10 4.2 11.5 3l2 1 .1 1.9a5.8 5.8 0 0 1 1.2.7l1.8-.6 1 2-1.2 1.3c.1.4.1.8.1 1.2s0 .8-.1 1.2l1.2 1.3-1 2-1.8-.6c-.4.3-.8.5-1.2.7L13.5 17l-2 1-1.5-1.2c-.5.1-1 .1-1.5 0L7 18l-2-1-.1-1.9a5.7 5.7 0 0 1-1.2-.7l-1.8.6-1-2 1.2-1.3a7.7 7.7 0 0 1 0-2.4L.9 8l1-2 1.8.6c.4-.3.8-.5 1.2-.7L5 4l2-1 1.5 1.2c.5-.1 1-.1 1.5 0Z" fill="currentColor" />
+      <path
+        d="M10 4.2 11.5 3l2 1 .1 1.9a5.8 5.8 0 0 1 1.2.7l1.8-.6 1 2-1.2 1.3c.1.4.1.8.1 1.2s0 .8-.1 1.2l1.2 1.3-1 2-1.8-.6c-.4.3-.8.5-1.2.7L13.5 17l-2 1-1.5-1.2c-.5.1-1 .1-1.5 0L7 18l-2-1-.1-1.9a5.7 5.7 0 0 1-1.2-.7l-1.8.6-1-2 1.2-1.3a7.7 7.7 0 0 1 0-2.4L.9 8l1-2 1.8.6c.4-.3.8-.5 1.2-.7L5 4l2-1 1.5 1.2c.5-.1 1-.1 1.5 0Z"
+        fill="currentColor"
+      />
       <circle cx="10" cy="10" r="2.4" fill="#050505" />
     </svg>
   )
@@ -64,7 +106,13 @@ function HelpIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <circle cx="10" cy="10" r="8" fill="currentColor" />
-      <path d="M8.4 7.5a1.8 1.8 0 1 1 3 1.4c-.7.5-1.1.9-1.1 1.8M10 13.8h.1" stroke="#050505" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M8.4 7.5a1.8 1.8 0 1 1 3 1.4c-.7.5-1.1.9-1.1 1.8M10 13.8h.1"
+        stroke="#050505"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -72,8 +120,19 @@ function HelpIcon() {
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M8 3.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M11 6.5 15 10l-4 3.5M15 10H7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M8 3.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11 6.5 15 10l-4 3.5M15 10H7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -88,13 +147,24 @@ function SidebarIcon({ view }: { view: AppView }) {
   return <HelpIcon />
 }
 
-const Sidebar = ({ activeView, onNavigate }: SidebarProps) => {
+const Sidebar = ({
+  activeView,
+  onNavigate,
+  onLogout,
+  currentUser,
+  currentLanguage,
+}: SidebarProps) => {
+  const displayName = currentUser?.username ?? 'guest'
+  const displayEmail = currentUser?.email ?? 'guest@example.com'
+  const avatarLetter = displayName.charAt(0).toUpperCase() || 'G'
+  const avatarUrl = currentUser?.avatarUrl
+
   return (
     <aside className="sidebar">
       <div className="sidebar__profile">
-        <ProfileAvatar />
-        <div className="sidebar__name">amanuel</div>
-        <div className="sidebar__email">amanuel@gmail.com</div>
+        <ProfileAvatar avatarUrl={avatarUrl} letter={avatarLetter} />
+        <div className="sidebar__name">{displayName}</div>
+        <div className="sidebar__email">{displayEmail}</div>
       </div>
 
       <nav className="sidebar__nav" aria-label="Dashboard navigation">
@@ -110,16 +180,16 @@ const Sidebar = ({ activeView, onNavigate }: SidebarProps) => {
             <span className="sidebar__item-icon">
               <SidebarIcon view={item.view} />
             </span>
-            <span>{item.label}</span>
+            <span>{getSidebarLabel(currentLanguage, item.view)}</span>
           </button>
         ))}
       </nav>
 
-      <button className="sidebar__logout" type="button">
+      <button className="sidebar__logout" type="button" onClick={onLogout}>
         <span className="sidebar__item-icon">
           <LogoutIcon />
         </span>
-        <span>Logout</span>
+        <span>{t(currentLanguage, 'sidebar.logout')}</span>
       </button>
     </aside>
   )
