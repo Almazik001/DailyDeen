@@ -1,10 +1,10 @@
-import React from 'react';
+import type { InputHTMLAttributes } from 'react'
 import classes from './MyInput.module.scss'
 
-const MyInput = (props) => {
-    return (
-        <input className={classes.myInput} {...props} type='text'/>
-    );
-};
+type MyInputProps = InputHTMLAttributes<HTMLInputElement>
 
-export default MyInput;
+const MyInput = ({ type = 'text', ...props }: MyInputProps) => {
+  return <input className={classes.myInput} {...props} type={type} />
+}
+
+export default MyInput
