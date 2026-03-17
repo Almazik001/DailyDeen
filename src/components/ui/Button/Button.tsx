@@ -1,14 +1,14 @@
 import type { ButtonHTMLAttributes, PropsWithChildren } from 'react'
-import classes from './MyButton.module.scss'
+import classes from './Button.module.scss'
 
-type MyButtonProps = PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>
+type ButtonProps = PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>
 
-const MyButton = ({
+const Button = ({
   children,
   className = '',
   type = 'button',
   ...props
-}: MyButtonProps) => {
+}: ButtonProps) => {
   const buttonClassName = className
     ? `${classes.myButton} ${className}`
     : classes.myButton
@@ -20,4 +20,4 @@ const MyButton = ({
   )
 }
 
-export default MyButton
+export default Button

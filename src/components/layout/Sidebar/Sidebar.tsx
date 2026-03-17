@@ -1,16 +1,11 @@
-type SidebarItem = {
-  label: string
-  active?: boolean
-}
+import type { AppView } from './navigation'
+import { sidebarItems } from './navigation'
+import './Sidebar.module.scss'
 
-const sidebarItems: SidebarItem[] = [
-  { label: 'Dashboard', active: true },
-  { label: 'Vital Task' },
-  { label: 'My Task' },
-  { label: 'Task Categories' },
-  { label: 'Settings' },
-  { label: 'Help' },
-]
+type SidebarProps = {
+  activeView: AppView
+  onNavigate: (view: AppView) => void
+}
 
 function ProfileAvatar() {
   return (
@@ -83,17 +78,17 @@ function LogoutIcon() {
   )
 }
 
-function SidebarIcon({ label }: { label: string }) {
-  if (label === 'Dashboard') return <DashboardIcon />
-  if (label === 'Vital Task') return <VitalIcon />
-  if (label === 'My Task') return <MyTaskIcon />
-  if (label === 'Task Categories') return <CategoriesIcon />
-  if (label === 'Settings') return <SettingsIcon />
+function SidebarIcon({ view }: { view: AppView }) {
+  if (view === 'dashboard') return <DashboardIcon />
+  if (view === 'vital-task') return <VitalIcon />
+  if (view === 'my-task') return <MyTaskIcon />
+  if (view === 'task-categories') return <CategoriesIcon />
+  if (view === 'settings') return <SettingsIcon />
 
   return <HelpIcon />
 }
 
-const Sidebar = () => {
+const Sidebar = ({ activeView, onNavigate }: SidebarProps) => {
   return (
     <aside className="sidebar">
       <div className="sidebar__profile">
@@ -105,12 +100,15 @@ const Sidebar = () => {
       <nav className="sidebar__nav" aria-label="Dashboard navigation">
         {sidebarItems.map((item) => (
           <button
-            key={item.label}
-            className={`sidebar__item${item.active ? ' is-active' : ''}`}
+            key={item.view}
+            className={`sidebar__item${activeView === item.view ? ' is-active' : ''}`}
             type="button"
+            onClick={() => {
+              onNavigate(item.view)
+            }}
           >
             <span className="sidebar__item-icon">
-              <SidebarIcon label={item.label} />
+              <SidebarIcon view={item.view} />
             </span>
             <span>{item.label}</span>
           </button>

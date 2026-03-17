@@ -1,3 +1,5 @@
+import './CompletedTasks.module.scss'
+
 type CompletedTask = {
   title: string
   description: string
@@ -56,7 +58,7 @@ function OverflowIcon() {
   )
 }
 
-const CompletedTaks = () => {
+const CompletedTasks = () => {
   return (
     <section className="dashboard-panel completed-panel">
       <div className="panel-head">
@@ -101,4 +103,4 @@ const CompletedTaks = () => {
   )
 }
 
-export default CompletedTaks
+export default CompletedTasks

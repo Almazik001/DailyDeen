@@ -1,127 +1,94 @@
-import Header from './components/layout/Header'
-import Sidebar from './components/layout/Sidebar'
-import CompletedTaks from './components/dashboard/CompletedTaks'
-import TaskStatus from './components/dashboard/TaskStatus'
-import TodoSelect from './components/dashboard/TodoSelect'
-import './App.scss'
+import { useEffect, useState } from 'react'
+import DashboardPage from './pages/DashboardPage/DashboardPage'
+import MyTaskPage from './pages/MyTaskPage/MyTaskPage'
+import PlaceholderPage from './pages/PlaceholderPage/PlaceholderPage'
+import TaskCategoriesPage from './pages/TaskCategoriesPage/TaskCategoriesPage'
+import VitalTaskPage from './pages/VitalTaskPage/VitalTaskPage'
+import Header from './components/layout/Header/Header'
+import Sidebar from './components/layout/Sidebar/Sidebar'
+import type { AppView } from './components/layout/Sidebar/navigation'
+import './styles/globals.scss'
 
-type TeamMember = {
-  label: string
-  background: string
-}
+const defaultView: AppView = 'dashboard'
 
-const teamMembers: TeamMember[] = [
-  {
-    label: 'AN',
-    background:
-      'linear-gradient(135deg, #4d2f1e 0%, #8d5632 45%, #1d222d 100%)',
-  },
-  {
-    label: 'JA',
-    background:
-      'linear-gradient(135deg, #b99059 0%, #f0d4ae 42%, #6a503b 100%)',
-  },
-  {
-    label: 'MK',
-    background:
-      'linear-gradient(135deg, #181b22 0%, #394254 48%, #90a4c5 100%)',
-  },
-  {
-    label: 'TI',
-    background:
-      'linear-gradient(135deg, #9d8c70 0%, #d6cfbf 48%, #58514a 100%)',
-  },
-  {
-    label: '+4',
-    background:
-      'linear-gradient(135deg, #34353c 0%, #5c5f67 50%, #17181c 100%)',
-  },
+const supportedViews: AppView[] = [
+  'dashboard',
+  'vital-task',
+  'my-task',
+  'task-categories',
+  'settings',
+  'help',
 ]
 
-function InviteIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="invite-button__icon"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6.2 9.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8Z" />
-      <path d="M2.8 14.5c.7-1.7 2.1-2.6 4.1-2.6s3.4.9 4.1 2.6" />
-      <path d="M13.2 7.1h4.1" />
-      <path d="M15.25 5v4.1" />
-    </svg>
-  )
-}
+function getViewFromHash(hash: string): AppView {
+  const normalized = hash.replace('#', '') as AppView
 
-function WaveIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="welcome-bar__wave"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12.8 3.7c-.4 0-.8.3-.8.8v6" />
-      <path d="M15.6 5.5c-.4 0-.8.3-.8.8v4.4" />
-      <path d="M18.4 7.6c-.4 0-.8.3-.8.8v3.1" />
-      <path d="M10 2.8c-.4 0-.8.3-.8.8v7.1l-1.7-1.5a1.5 1.5 0 0 0-2.1.1c-.5.6-.5 1.5.1 2.1l4.8 5.3a3.8 3.8 0 0 0 2.8 1.2h2.2c2.4 0 4.4-2 4.4-4.4v-3.3" />
-    </svg>
-  )
+  return supportedViews.includes(normalized) ? normalized : defaultView
 }
 
 function App() {
+  const [activeView, setActiveView] = useState<AppView>(() => {
+    if (typeof window === 'undefined') {
+      return defaultView
+    }
+
+    return getViewFromHash(window.location.hash)
+  })
+
+  useEffect(() => {
+    const syncViewWithHash = () => {
+      setActiveView(getViewFromHash(window.location.hash))
+    }
+
+    if (!window.location.hash) {
+      window.history.replaceState(null, '', `#${defaultView}`)
+    }
+
+    syncViewWithHash()
+    window.addEventListener('hashchange', syncViewWithHash)
+
+    return () => {
+      window.removeEventListener('hashchange', syncViewWithHash)
+    }
+  }, [])
+
+  const handleNavigate = (view: AppView) => {
+    if (window.location.hash === `#${view}`) {
+      setActiveView(view)
+      return
+    }
+
+    window.location.hash = view
+  }
+
+  const renderActiveView = () => {
+    if (activeView === 'dashboard') {
+      return <DashboardPage />
+    }
+
+    if (activeView === 'my-task') {
+      return <MyTaskPage />
+    }
+
+    if (activeView === 'vital-task') {
+      return <VitalTaskPage />
+    }
+
+    if (activeView === 'task-categories') {
+      return <TaskCategoriesPage />
+    }
+
+    return <PlaceholderPage view={activeView} />
+  }
+
   return (
     <div className="page-shell">
-      <Header />
+      <Header currentView={activeView} />
 
       <main className="page-content container">
-        <Sidebar />
+        <Sidebar activeView={activeView} onNavigate={handleNavigate} />
 
-        <section className="content-area">
-          <div className="welcome-bar">
-            <h1 className="welcome-bar__title">
-              Welcome back, amanuel
-              <WaveIcon />
-            </h1>
-
-            <div className="team-strip">
-              <div className="team-strip__avatars" aria-hidden="true">
-                {teamMembers.map((member) => (
-                  <div
-                    key={member.label}
-                    className={`team-strip__avatar${member.label.startsWith('+') ? ' is-count' : ''}`}
-                    style={{ background: member.background }}
-                  >
-                    {member.label}
-                  </div>
-                ))}
-              </div>
-
-              <button className="invite-button" type="button">
-                <InviteIcon />
-                Invite
-              </button>
-            </div>
-          </div>
-
-          <div className="dashboard-main">
-            <TodoSelect />
-
-            <div className="dashboard-sidebar">
-              <TaskStatus />
-              <CompletedTaks />
-            </div>
-          </div>
-        </section>
+        <section className="content-area">{renderActiveView()}</section>
       </main>
     </div>
   )

@@ -1,3 +1,5 @@
+import './TaskStatus.module.scss'
+
 type StatusItem = {
   label: string
   value: number
