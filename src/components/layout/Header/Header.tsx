@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getApiErrorMessage } from '../../../api/apiClient'
 import type { StoredUser } from '../../../features/auth/authStorage'
+import {
+  isBirthdayCalendarDate,
+  isBirthdayToday,
+} from '../../../features/birthday/birthdayGreeting'
+import {
+  loadTaskNotifications,
+  type TaskNotificationItem,
+} from '../../../features/notifications/taskNotifications'
+import {
+  buildCalendarCells,
+  canNavigateCalendarMonth,
+  formatCalendarLongDate,
+  formatCalendarMonthLabel,
+  shiftCalendarMonth,
+  startOfCalendarMonth,
+} from '../../../features/calendar/calendarUtils'
 import type { LanguageMode } from '../../../features/settings/settingsStorage'
 import { t } from '../../../features/settings/translations'
 import { useCurrentDate } from '../../../hooks/useCurrentDate'
@@ -10,7 +27,6 @@ import DateWidget from '../DateWidget/DateWidget'
 import Button from '../../ui/Button/Button'
 import Input from '../../ui/Input/Input'
 import type { AppView } from '../Sidebar/navigation'
-import { headerBrandMap } from '../Sidebar/navigation'
 
 type HeaderProps = {
   currentView: AppView
@@ -21,49 +37,6 @@ type HeaderProps = {
 }
 
 type HeaderPopover = 'notifications' | 'calendar' | null
-
-type NotificationItem = {
-  id: number
-  title: string
-  priority: string
-  time: string
-  thumbnail: string
-}
-
-const notifications: NotificationItem[] = [
-  {
-    id: 1,
-    title: 'Complete the UI design of Landing Page for FoodVentures.',
-    priority: 'High',
-    time: '2h',
-    thumbnail:
-      'linear-gradient(135deg, #889163 0%, #dbe2a8 44%, #7d7155 100%)',
-  },
-  {
-    id: 2,
-    title: 'Complete the UI design of Landing Page for Travel Days.',
-    priority: 'High',
-    time: '2h',
-    thumbnail:
-      'linear-gradient(135deg, #f0f3f8 0%, #ffffff 42%, #d3caea 100%)',
-  },
-  {
-    id: 3,
-    title: 'Complete the Mobile app design for Pet Warden.',
-    priority: 'Extremely High',
-    time: '2h',
-    thumbnail:
-      'linear-gradient(135deg, #f1f4fb 0%, #ffffff 40%, #c9d7f4 100%)',
-  },
-  {
-    id: 4,
-    title: 'Complete the entire design for Juice Slider.',
-    priority: 'High',
-    time: '2h',
-    thumbnail:
-      'linear-gradient(135deg, #d72a5b 0%, #f76f4c 46%, #f9d26e 100%)',
-  },
-]
 
 const weekdayMap: Record<LanguageMode, string[]> = {
   english: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
@@ -77,7 +50,24 @@ const localeMap: Record<LanguageMode, string> = {
   kazakh: 'kk-KZ',
 }
 
-const calendarDays = Array.from({ length: 30 }, (_, index) => index + 1)
+const brandAccentLengthMap: Record<AppView, number> = {
+  dashboard: 4,
+  'vital-task': 4,
+  'my-task': 3,
+  'task-categories': 3,
+  settings: 3,
+  help: 3,
+}
+
+function getBrandParts(label: string, view: AppView) {
+  const normalized = label.trim()
+  const accentLength = Math.min(brandAccentLengthMap[view], normalized.length)
+
+  return {
+    accent: normalized.slice(0, accentLength),
+    rest: normalized.slice(accentLength),
+  }
+}
 
 function BackArrowIcon() {
   return (
@@ -126,12 +116,6 @@ function WaveIcon() {
   )
 }
 
-const menuLabelMap: Record<LanguageMode, string> = {
-  english: 'Open menu',
-  russian: 'Open menu',
-  kazakh: 'Open menu',
-}
-
 const Header = ({
   currentView,
   currentLanguage,
@@ -139,12 +123,27 @@ const Header = ({
   isSidebarOpen,
   onSidebarToggle,
 }: HeaderProps) => {
-  const brand = headerBrandMap[currentView]
   const isDashboardView = currentView === 'dashboard'
   const [openPopover, setOpenPopover] = useState<HeaderPopover>(null)
+  const [notificationItems, setNotificationItems] = useState<TaskNotificationItem[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [calendarViewDate, setCalendarViewDate] = useState(() =>
+    startOfCalendarMonth(new Date()),
+  )
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null)
   const toolsRef = useRef<HTMLDivElement | null>(null)
   const currentDate = useCurrentDate()
-  const welcomeName = currentUser?.firstName?.trim() || currentUser?.username || 'guest'
+  const welcomeName =
+    currentUser?.firstName?.trim() ||
+    currentUser?.username ||
+    t(currentLanguage, 'common.guest')
+  const isBirthdayCelebration = isDashboardView && isBirthdayToday(currentUser, currentDate)
+
+  const brand = useMemo(
+    () => getBrandParts(t(currentLanguage, `sidebar.${currentView}`), currentView),
+    [currentLanguage, currentView],
+  )
 
   const formattedDate = useMemo(() => {
     const locale = localeMap[currentLanguage]
@@ -163,15 +162,87 @@ const Header = ({
   }, [currentDate, currentLanguage])
 
   const dashboardDate = useMemo(() => {
+    const locale = localeMap[currentLanguage]
+
     return {
-      weekday: new Intl.DateTimeFormat('ru-RU', { weekday: 'long' }).format(currentDate),
-      shortDate: new Intl.DateTimeFormat('ru-RU', {
+      weekday: new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(currentDate),
+      shortDate: new Intl.DateTimeFormat(locale, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       }).format(currentDate),
     }
-  }, [currentDate])
+  }, [currentDate, currentLanguage])
+
+  const activeCalendarDate = calendarSelectedDate ?? currentDate
+  const calendarMonthLabel = useMemo(
+    () => formatCalendarMonthLabel(calendarViewDate, currentLanguage),
+    [calendarViewDate, currentLanguage],
+  )
+  const calendarLongDate = useMemo(
+    () => formatCalendarLongDate(activeCalendarDate, currentLanguage),
+    [activeCalendarDate, currentLanguage],
+  )
+  const calendarCells = useMemo(
+    () =>
+      buildCalendarCells({
+        viewDate: calendarViewDate,
+        selectedDate: activeCalendarDate,
+        currentDate,
+      }),
+    [activeCalendarDate, calendarViewDate, currentDate],
+  )
+
+  const hasNotifications = notificationItems.length > 0
+  const canGoToPreviousCalendarMonth = useMemo(
+    () => canNavigateCalendarMonth(calendarViewDate, -1),
+    [calendarViewDate],
+  )
+  const canGoToNextCalendarMonth = useMemo(
+    () => canNavigateCalendarMonth(calendarViewDate, 1),
+    [calendarViewDate],
+  )
+
+  useEffect(() => {
+    if (openPopover !== 'notifications' || !currentUser) {
+      return
+    }
+
+    let isCancelled = false
+
+    const fetchNotifications = async () => {
+      setNotificationsLoading(true)
+      setNotificationsError('')
+
+      try {
+        const items = await loadTaskNotifications(currentLanguage)
+
+        if (isCancelled) {
+          return
+        }
+
+        setNotificationItems(items)
+      } catch (error) {
+        if (isCancelled) {
+          return
+        }
+
+        setNotificationsError(
+          getApiErrorMessage(error, t(currentLanguage, 'header.notificationsError')),
+        )
+      } finally {
+        if (!isCancelled) {
+          setNotificationsLoading(false)
+        }
+      }
+    }
+
+    void fetchNotifications()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [currentLanguage, currentUser, openPopover])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -199,13 +270,24 @@ const Header = ({
     setOpenPopover((current) => (current === popover ? null : popover))
   }
 
+  const handleCalendarToggle = () => {
+    if (openPopover === 'calendar') {
+      setOpenPopover(null)
+      return
+    }
+
+    setCalendarViewDate(startOfCalendarMonth(currentDate))
+    setCalendarSelectedDate(null)
+    setOpenPopover('calendar')
+  }
+
   return (
     <header className={`header container${isDashboardView ? ' header--dashboard' : ''}`}>
       <div className="header-brand-row">
         <button
           aria-controls="app-sidebar"
           aria-expanded={isSidebarOpen}
-          aria-label={menuLabelMap[currentLanguage]}
+          aria-label={t(currentLanguage, 'header.openMenu')}
           className={`header-menu-toggle${isSidebarOpen ? ' is-active' : ''}`}
           type="button"
           onClick={onSidebarToggle}
@@ -213,7 +295,7 @@ const Header = ({
           <MenuIcon />
         </button>
 
-        <div className="header-logo" aria-label={currentView}>
+        <div className="header-logo" aria-label={t(currentLanguage, `sidebar.${currentView}`)}>
           <span>{brand.accent}</span>
           {brand.rest}
         </div>
@@ -249,7 +331,11 @@ const Header = ({
 
       <div className="header-tools" ref={toolsRef}>
         <div className="header-date">
-          <DateWidget date={dashboardDate.shortDate} weekday={dashboardDate.weekday} />
+          <DateWidget
+            date={dashboardDate.shortDate}
+            weekday={dashboardDate.weekday}
+            isBirthday={isBirthdayCelebration}
+          />
         </div>
 
         <div className="header-button">
@@ -267,7 +353,12 @@ const Header = ({
                 togglePopover('notifications')
               }}
             >
-              <img src={BellIcon} alt="bell icon" style={{ width: 14, height: 14 }} />
+              <img src={BellIcon} alt="" style={{ width: 14, height: 14 }} />
+              {hasNotifications ? (
+                <span className="header-icon-badge" aria-hidden="true">
+                  {notificationItems.length > 9 ? '9+' : notificationItems.length}
+                </span>
+              ) : null}
             </Button>
 
             {openPopover === 'notifications' ? (
@@ -281,9 +372,11 @@ const Header = ({
                     <h3 className="header-card__title">
                       {t(currentLanguage, 'header.notifications')}
                     </h3>
-                    <p className="header-card__subtitle">
-                      {t(currentLanguage, 'common.today')}
-                    </p>
+                    {hasNotifications ? (
+                      <p className="header-card__subtitle">
+                        {t(currentLanguage, 'common.today')}
+                      </p>
+                    ) : null}
                   </div>
                   <button
                     className="header-card__back"
@@ -298,22 +391,34 @@ const Header = ({
                 </div>
 
                 <div className="header-card__scroll">
-                  {notifications.map((item) => (
-                    <article className="notification-item" key={item.id}>
-                      <div className="notification-item__content">
-                        <p className="notification-item__title">{item.title}</p>
-                        <p className="notification-item__meta">
-                          Priority: <strong>{item.priority}</strong>
-                          <span>{item.time}</span>
-                        </p>
-                      </div>
-                      <div
-                        className="notification-item__thumb"
-                        aria-hidden="true"
-                        style={{ background: item.thumbnail }}
-                      />
-                    </article>
-                  ))}
+                  {hasNotifications ? (
+                    notificationItems.map((item) => (
+                      <article className="notification-item" key={item.id}>
+                        <div className="notification-item__content">
+                          <p className="notification-item__title">{item.title}</p>
+                          <p className="notification-item__meta">
+                            {t(currentLanguage, 'task.priority')}: <strong>{item.priority}</strong>
+                            <span>{item.time}</span>
+                          </p>
+                        </div>
+                        <div
+                          className="notification-item__thumb"
+                          aria-hidden="true"
+                          style={{ background: item.thumbnail }}
+                        />
+                      </article>
+                    ))
+                  ) : notificationsLoading ? (
+                    <p className="header-card__empty">
+                      {t(currentLanguage, 'header.loadingNotifications')}
+                    </p>
+                  ) : notificationsError ? (
+                    <p className="header-card__empty">{notificationsError}</p>
+                  ) : (
+                    <p className="header-card__empty">
+                      {t(currentLanguage, 'header.noNotifications')}
+                    </p>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -330,14 +435,10 @@ const Header = ({
                   : 'header-icon-trigger'
               }
               onClick={() => {
-                togglePopover('calendar')
+                handleCalendarToggle()
               }}
             >
-              <img
-                src={Calendar}
-                alt="calendar icon"
-                style={{ width: 14, height: 14 }}
-              />
+              <img src={Calendar} alt="" style={{ width: 14, height: 14 }} />
             </Button>
 
             {openPopover === 'calendar' ? (
@@ -363,8 +464,15 @@ const Header = ({
                 </div>
 
                 <div className="calendar-card__head">
-                  <button className="calendar-card__date" type="button">
-                    {formattedDate.longDate}
+                  <button
+                    className="calendar-card__date"
+                    type="button"
+                    onClick={() => {
+                      setCalendarViewDate(startOfCalendarMonth(currentDate))
+                      setCalendarSelectedDate(null)
+                    }}
+                  >
+                    {calendarLongDate}
                   </button>
                   <button
                     className="calendar-card__close"
@@ -379,15 +487,23 @@ const Header = ({
                   <button
                     className="calendar-card__nav"
                     type="button"
-                    aria-label="Previous month"
+                    aria-label={t(currentLanguage, 'header.previousMonth')}
+                    disabled={!canGoToPreviousCalendarMonth}
+                    onClick={() => {
+                      setCalendarViewDate((current) => shiftCalendarMonth(current, -1))
+                    }}
                   >
                     <BackArrowIcon />
                   </button>
-                  <span>{formattedDate.monthLabel}</span>
+                  <span>{calendarMonthLabel}</span>
                   <button
                     className="calendar-card__nav is-next"
                     type="button"
-                    aria-label="Next month"
+                    aria-label={t(currentLanguage, 'header.nextMonth')}
+                    disabled={!canGoToNextCalendarMonth}
+                    onClick={() => {
+                      setCalendarViewDate((current) => shiftCalendarMonth(current, 1))
+                    }}
                   >
                     <BackArrowIcon />
                   </button>
@@ -400,19 +516,33 @@ const Header = ({
                 </div>
 
                 <div className="calendar-card__grid">
-                  <span className="is-empty" />
-                  <span className="is-empty" />
-                  <span className="is-empty" />
-                  <span className="is-empty" />
-                  {calendarDays.map((day) => (
-                    <button
-                      key={day}
-                      className={`calendar-card__day${day === 6 ? ' is-selected' : ''}`}
-                      type="button"
-                    >
-                      {day}
-                    </button>
-                  ))}
+                  {calendarCells.map((cell) => {
+                    if (!cell.date) {
+                      return <span key={cell.key} className="is-empty" />
+                    }
+
+                    const isBirthdayCell =
+                      isDashboardView &&
+                      isBirthdayCalendarDate(currentUser?.birthDate, cell.date)
+
+                    return (
+                      <button
+                        key={cell.key}
+                        className={`calendar-card__day${cell.isSelected ? ' is-selected' : ''}${
+                          cell.isToday ? ' is-today' : ''
+                        }${isBirthdayCell ? ' is-birthday' : ''}`}
+                        data-birthday-label={
+                          isBirthdayCell ? t(currentLanguage, 'header.birthdayHint') : undefined
+                        }
+                        type="button"
+                        onClick={() => {
+                          setCalendarSelectedDate(cell.date)
+                        }}
+                      >
+                        {cell.dayNumber}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             ) : null}

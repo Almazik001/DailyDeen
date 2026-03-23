@@ -1,0 +1,223 @@
+.modal {
+  width: min(100%, 680px);
+  padding: clamp(18px, 2.8vw, 28px) !important;
+  overflow: hidden;
+}
+
+.header {
+  width: 100%;
+  display: block;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #e45d50;
+  background: rgba(239, 115, 104, 0.14);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 12px;
+  color: #171c23;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.hero {
+  position: relative;
+  min-height: 160px;
+  display: grid;
+  align-items: end;
+  padding: clamp(18px, 2.6vw, 26px);
+  border: 1px solid rgba(223, 229, 239, 0.92);
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6), transparent 22%),
+    radial-gradient(circle at 80% 18%, rgba(255, 211, 155, 0.42), transparent 18%),
+    linear-gradient(135deg, rgba(255, 241, 235, 0.98) 0%, rgba(248, 250, 255, 0.98) 52%, rgba(255, 232, 221, 0.98) 100%);
+}
+
+.orb,
+.glow {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.orb {
+  top: -48px;
+  right: -28px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(239, 115, 104, 0.26) 0%, rgba(239, 115, 104, 0.08) 42%, transparent 72%);
+  filter: blur(2px);
+}
+
+.glow {
+  bottom: -54px;
+  left: -30px;
+  width: 210px;
+  height: 210px;
+  background: radial-gradient(circle, rgba(79, 109, 255, 0.14) 0%, rgba(79, 109, 255, 0.05) 46%, transparent 72%);
+}
+
+.subtitle {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  color: #4b5568;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.quoteCard {
+  padding: clamp(18px, 2.2vw, 24px);
+  border: 1px solid rgba(223, 229, 239, 0.9);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(239, 115, 104, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.98));
+}
+
+.quoteLabel {
+  display: inline-flex;
+  align-items: center;
+  color: #97a0b2;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quote {
+  margin-top: 12px;
+  color: #1b2028;
+  font-size: clamp(1rem, 1.8vw, 1.16rem);
+  font-weight: 700;
+  line-height: 1.75;
+}
+
+.wishes {
+  display: grid;
+  gap: 12px;
+}
+
+.wish {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid rgba(223, 229, 239, 0.84);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.wishDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ef8061 0%, #de5f44 100%);
+  box-shadow: 0 0 0 6px rgba(239, 115, 104, 0.12);
+}
+
+.wish p {
+  color: #5c6678;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryAction {
+  min-width: 132px;
+}
+
+:global(:root[data-theme='soft-dark']) .modal {
+  background:
+    radial-gradient(circle at top right, rgba(239, 115, 104, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(30, 37, 48, 0.98), rgba(24, 31, 41, 0.98)) !important;
+  border-color: rgba(57, 66, 82, 0.92) !important;
+}
+
+:global(:root[data-theme='soft-dark']) .badge {
+  color: #ffb0a3;
+  background: rgba(239, 115, 104, 0.14);
+}
+
+:global(:root[data-theme='soft-dark']) .title {
+  color: #eef2f8;
+}
+
+:global(:root[data-theme='soft-dark']) .hero {
+  border-color: rgba(57, 66, 82, 0.86);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 22%),
+    radial-gradient(circle at 80% 18%, rgba(255, 183, 122, 0.16), transparent 18%),
+    linear-gradient(135deg, rgba(34, 41, 52, 0.98) 0%, rgba(24, 31, 41, 0.98) 54%, rgba(57, 43, 40, 0.98) 100%);
+}
+
+:global(:root[data-theme='soft-dark']) .subtitle {
+  color: #c1c8d5;
+}
+
+:global(:root[data-theme='soft-dark']) .quoteCard,
+:global(:root[data-theme='soft-dark']) .wish {
+  border-color: rgba(57, 66, 82, 0.84);
+  background: rgba(20, 26, 35, 0.86);
+}
+
+:global(:root[data-theme='soft-dark']) .quoteLabel {
+  color: #96a1b5;
+}
+
+:global(:root[data-theme='soft-dark']) .quote {
+  color: #f1f4fa;
+}
+
+:global(:root[data-theme='soft-dark']) .wish p {
+  color: #bcc4d2;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 16px !important;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
+  .hero {
+    min-height: 0;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .quoteCard,
+  .wish {
+    padding: 16px;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .primaryAction {
+    width: 100%;
+  }
+}

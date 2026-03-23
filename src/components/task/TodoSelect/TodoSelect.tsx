@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ApiTask } from '../../../api/types'
 import { getApiErrorMessage } from '../../../api/apiClient'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { t } from '../../../features/settings/translations'
 import TaskFormModal, {
   type TaskFormState,
 } from '../../../features/task-form/TaskFormModal'
@@ -11,9 +13,12 @@ import {
 } from '../../../features/tasks/taskData'
 import {
   formatDisplayDate,
+  getPriorityLabel,
+  getStatusLabel,
   getPriorityVisual,
   getStatusColor,
   priorityMeta,
+  statusMeta,
   toTaskFormState,
   toTaskImage,
 } from '../../../features/tasks/taskUi'
@@ -23,6 +28,7 @@ const initialFormState: TaskFormState = {
   title: '',
   date: '',
   priority: 'Moderate',
+  status: 'Not Started',
   description: '',
   imagePreview: '',
   imageName: '',
@@ -64,19 +70,24 @@ function OverflowIcon() {
   )
 }
 
-function getCurrentDayLabel() {
+function getCurrentDayLabel(language: LanguageMode) {
   const date = new Date()
+  const locale = language === 'russian' ? 'ru-RU' : language === 'kazakh' ? 'kk-KZ' : 'en-GB'
 
   return {
-    day: new Intl.DateTimeFormat('en-GB', {
+    day: new Intl.DateTimeFormat(locale, {
       day: 'numeric',
       month: 'long',
     }).format(date),
-    caption: 'Today',
+    caption: t(language, 'common.today'),
   }
 }
 
-const TodoSelect = () => {
+type TodoSelectProps = {
+  language: LanguageMode
+}
+
+const TodoSelect = ({ language }: TodoSelectProps) => {
   const [tasks, setTasks] = useState<ApiTask[]>([])
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
@@ -88,12 +99,12 @@ const TodoSelect = () => {
       try {
         setTasks(await getTasksByCategory('To-Do'))
       } catch (error) {
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load tasks'))
+        setErrorMessage(getApiErrorMessage(error, t(language, 'task.loadError')))
       }
     }
 
     void loadTodoTasks()
-  }, [])
+  }, [language])
 
   const closeModal = () => {
     setIsTaskFormOpen(false)
@@ -106,9 +117,13 @@ const TodoSelect = () => {
     setIsTaskFormOpen(true)
   }
 
-  const openEditModal = (taskId: string) => {
+  const handleEditTask = (task: ApiTask) => {
+    if (import.meta.env.DEV) {
+      console.log('[TodoSelect] edit task click', task)
+    }
+
     setModalMode('edit')
-    setEditingTaskId(taskId)
+    setEditingTaskId(task.id)
     setIsTaskFormOpen(true)
   }
 
@@ -139,11 +154,11 @@ const TodoSelect = () => {
       setTasks((current) => [newTask, ...current])
       closeModal()
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to save task'))
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.saveError')))
     }
   }
 
-  const currentDate = getCurrentDayLabel()
+  const currentDate = getCurrentDayLabel(language)
 
   return (
     <>
@@ -151,11 +166,11 @@ const TodoSelect = () => {
         <div className="panel-head">
           <div className="panel-title">
             <TodoPanelIcon />
-            <h2>To-Do</h2>
+            <h2>{t(language, 'dashboard.todoTitle')}</h2>
           </div>
           <button className="panel-action" type="button" onClick={openCreateModal}>
             <span>+</span>
-            Add task
+            {t(language, 'dashboard.addTask')}
           </button>
         </div>
 
@@ -169,13 +184,29 @@ const TodoSelect = () => {
 
         <div className="todo-list">
           {tasks.map((task) => (
-            <article className="task-card task-card--todo" key={task.id}>
+            <article
+              className="task-card task-card--todo"
+              key={task.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`${t(language, 'task.editTask')}: ${task.title}`}
+              onClick={() => {
+                handleEditTask(task)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleEditTask(task)
+                }
+              }}
+            >
               <button
                 className="task-card__menu-button"
                 type="button"
-                aria-label={`Edit ${task.title}`}
-                onClick={() => {
-                  openEditModal(task.id)
+                aria-label={`${t(language, 'task.editTask')}: ${task.title}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleEditTask(task)
                 }}
               >
                 <OverflowIcon />
@@ -190,7 +221,7 @@ const TodoSelect = () => {
                       color: getStatusColor(task.status.name),
                     }}
                   >
-                    {task.status.name}
+                    {getStatusLabel(task.status.name, language)}
                   </span>
                   <span
                     className="task-card__badge task-card__badge--priority"
@@ -199,12 +230,18 @@ const TodoSelect = () => {
                       color: getPriorityVisual(task.priority.name).textColor,
                     }}
                   >
-                    {task.priority.name} priority
+                    {t(language, 'task.priorityBadge', {
+                      priority: getPriorityLabel(task.priority.name, language),
+                    })}
                   </span>
                 </div>
 
                 <h3 className="task-card__title">{task.title}</h3>
-                <p className="task-card__meta">Created {formatDisplayDate(task.createdAt)}</p>
+                <p className="task-card__meta">
+                  {t(language, 'task.created', {
+                    date: formatDisplayDate(task.createdAt, language),
+                  })}
+                </p>
               </div>
 
               <div
@@ -225,7 +262,9 @@ const TodoSelect = () => {
         isOpen={isTaskFormOpen}
         mode={modalMode}
         initialState={initialModalState}
+        language={language}
         priorityMeta={priorityMeta}
+        statusMeta={statusMeta}
         onClose={closeModal}
         onSubmit={handleTaskFormSubmit}
       />

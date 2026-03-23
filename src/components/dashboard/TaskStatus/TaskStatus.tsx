@@ -1,12 +1,16 @@
 import type { ApiTask } from '../../../api/types'
 import { getCompletedAgoLabel } from '../../../features/tasks/dashboardData'
 import type { DashboardStatusItem } from '../../../features/tasks/dashboardData'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { t } from '../../../features/settings/translations'
+import { getStatusLabel } from '../../../features/tasks/taskUi'
 import './TaskStatus.module.scss'
 
 type TaskStatusProps = {
   items: DashboardStatusItem[]
   totalTasks: number
   completedTasks: ApiTask[]
+  language: LanguageMode
 }
 
 function StatusPanelIcon() {
@@ -31,19 +35,27 @@ function StatusPanelIcon() {
   )
 }
 
-const TaskStatus = ({ items, totalTasks, completedTasks }: TaskStatusProps) => {
+const TaskStatus = ({
+  items,
+  totalTasks,
+  completedTasks,
+  language,
+}: TaskStatusProps) => {
   const completedCount = items.find((item) => item.label === 'Completed')?.count ?? 0
   const summary =
     totalTasks === 0
-      ? 'No tasks yet. Add your first task to track progress.'
-      : `${completedCount} of ${totalTasks} tasks completed`
+      ? t(language, 'dashboard.statusSummaryEmpty')
+      : t(language, 'dashboard.statusSummary', {
+          completed: String(completedCount),
+          total: String(totalTasks),
+        })
 
   return (
     <section className="dashboard-panel status-panel">
       <div className="panel-head panel-head--stacked">
         <div className="panel-title">
           <StatusPanelIcon />
-          <h2>Task Status</h2>
+          <h2>{t(language, 'dashboard.taskStatusTitle')}</h2>
         </div>
         <p className="status-panel__summary">{summary}</p>
       </div>
@@ -58,7 +70,7 @@ const TaskStatus = ({ items, totalTasks, completedTasks }: TaskStatusProps) => {
                   aria-hidden="true"
                   style={{ backgroundColor: item.color }}
                 />
-                <span>{item.label}</span>
+                <span>{getStatusLabel(item.label, language)}</span>
               </div>
 
               <div className="status-card__value">
@@ -82,7 +94,9 @@ const TaskStatus = ({ items, totalTasks, completedTasks }: TaskStatusProps) => {
 
       <div className="status-panel__recent">
         <div className="status-panel__recent-head">
-          <h3 className="status-panel__recent-title">Recently completed</h3>
+          <h3 className="status-panel__recent-title">
+            {t(language, 'dashboard.recentlyCompleted')}
+          </h3>
           {completedTasks.length ? (
             <span className="status-panel__recent-count">{completedTasks.length}</span>
           ) : null}
@@ -94,14 +108,20 @@ const TaskStatus = ({ items, totalTasks, completedTasks }: TaskStatusProps) => {
               <article className="status-activity" key={task.id}>
                 <div className="status-activity__body">
                   <h4 className="status-activity__title">{task.title}</h4>
-                  <p className="status-activity__meta">{getCompletedAgoLabel(task)}</p>
+                  <p className="status-activity__meta">
+                    {getCompletedAgoLabel(task, language)}
+                  </p>
                 </div>
-                <span className="status-activity__badge">Done</span>
+                <span className="status-activity__badge">
+                  {t(language, 'common.done')}
+                </span>
               </article>
             ))}
           </div>
         ) : (
-          <p className="status-panel__empty">Completed tasks will show up here.</p>
+          <p className="status-panel__empty">
+            {t(language, 'dashboard.completedTasksEmpty')}
+          </p>
         )}
       </div>
     </section>

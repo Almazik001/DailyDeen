@@ -10,6 +10,11 @@ type TaskCategoriesTableProps = {
   columnLabel: string
   rows: LookupRow[]
   addLabel: string
+  serialLabel: string
+  actionLabel: string
+  editLabel: string
+  deleteLabel: string
+  emptyLabel: string
   onAdd: () => void
   onEdit: (row: LookupRow) => void
   onDelete: (rowId: string) => void
@@ -39,6 +44,11 @@ const TaskCategoriesTable = ({
   columnLabel,
   rows,
   addLabel,
+  serialLabel,
+  actionLabel,
+  editLabel,
+  deleteLabel,
+  emptyLabel,
   onAdd,
   onEdit,
   onDelete,
@@ -60,18 +70,18 @@ const TaskCategoriesTable = ({
         <table className={styles.table}>
           <thead>
             <tr>
-              <th scope="col">SN</th>
+              <th scope="col">{serialLabel}</th>
               <th scope="col">{columnLabel}</th>
-              <th scope="col">Action</th>
+              <th scope="col">{actionLabel}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length ? (
               rows.map((row, index) => (
                 <tr key={row.id}>
-                  <td data-label="SN">{index + 1}</td>
+                  <td data-label={serialLabel}>{index + 1}</td>
                   <td data-label={columnLabel}>{row.name}</td>
-                  <td className={styles.actionCell} data-label="Action">
+                  <td className={styles.actionCell} data-label={actionLabel}>
                     <div className={styles.actions}>
                       <button
                         className={`${styles.actionButton} ${styles.rowButton}`}
@@ -81,7 +91,7 @@ const TaskCategoriesTable = ({
                         }}
                       >
                         <EditIcon />
-                        Edit
+                        {editLabel}
                       </button>
                       <button
                         className={`${styles.actionButton} ${styles.rowButton} ${styles.deleteButton}`}
@@ -91,7 +101,7 @@ const TaskCategoriesTable = ({
                         }}
                       >
                         <DeleteIcon />
-                        Delete
+                        {deleteLabel}
                       </button>
                     </div>
                   </td>
@@ -100,7 +110,7 @@ const TaskCategoriesTable = ({
             ) : (
               <tr className={styles.emptyRow}>
                 <td className={styles.emptyCell} colSpan={3}>
-                  No items yet
+                  {emptyLabel}
                 </td>
               </tr>
             )}

@@ -129,12 +129,18 @@ const DashboardHome = ({ language }: DashboardHomeProps) => {
       </div>
 
       <div className="dashboard-main">
-        <TodoSection />
-        <TaskStatus completedTasks={completedTasks} items={statusItems} totalTasks={totalTasks} />
+        <TodoSection language={language} />
+        <TaskStatus
+          completedTasks={completedTasks}
+          items={statusItems}
+          language={language}
+          totalTasks={totalTasks}
+        />
       </div>
 
       {isInviteOpen ? (
         <InviteMembersModal
+          language={language}
           onClose={() => {
             setIsInviteOpen(false)
           }}

@@ -93,13 +93,19 @@ export function persistAuthSession(user: ApiUser, token: string, rememberMe: boo
 export function persistUserSnapshot(user: ApiUser) {
   const session = getStoredSession()
   const storage = getPreferredStorage(session?.rememberMe ?? true)
+  const currentUser = getStoredUserSnapshot()
 
   if (!storage) {
     return
   }
 
   removeKey(USER_KEY)
-  writeValue(storage, USER_KEY, user)
+  writeValue(storage, USER_KEY, {
+    ...currentUser,
+    ...user,
+    birthDate:
+      user.birthDate !== undefined ? user.birthDate : currentUser?.birthDate ?? null,
+  })
 }
 
 export function clearAuthSession() {

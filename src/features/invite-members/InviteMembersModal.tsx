@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
+import type { LanguageMode } from '../settings/settingsStorage'
+import { t } from '../settings/translations'
 
 type InviteMembersModalProps = {
+  language: LanguageMode
   onClose: () => void
 }
 
@@ -55,7 +58,7 @@ function AvatarPlaceholder({ background }: { background: string }) {
   )
 }
 
-const InviteMembersModal = ({ onClose }: InviteMembersModalProps) => {
+const InviteMembersModal = ({ language, onClose }: InviteMembersModalProps) => {
   const [email, setEmail] = useState('amanuelbeyene662@gmail.com')
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle')
@@ -86,7 +89,7 @@ const InviteMembersModal = ({ onClose }: InviteMembersModalProps) => {
 
     const newMember: Member = {
       id: Date.now(),
-      name: email.split('@')[0] || 'New Member',
+      name: email.split('@')[0] || t(language, 'invite.newMember'),
       email,
       avatar:
         'linear-gradient(135deg, #884c38 0%, #d29f77 48%, #282d3c 100%)',
@@ -124,16 +127,16 @@ const InviteMembersModal = ({ onClose }: InviteMembersModalProps) => {
       >
         <div className="invite-modal__header">
           <h3 className="section-title" id="invite-modal-title">
-            Send an invite to a new member
+            {t(language, 'invite.title')}
           </h3>
           <button className="invite-modal__back" type="button" onClick={onClose}>
-            Go Back
+            {t(language, 'common.goBack')}
           </button>
         </div>
 
         <form className="invite-modal__email-row" onSubmit={handleInvite}>
           <label className="invite-modal__field">
-            <span className="invite-modal__label">Email</span>
+            <span className="invite-modal__label">{t(language, 'invite.email')}</span>
             <input
               className="invite-modal__input"
               type="email"
@@ -141,17 +144,17 @@ const InviteMembersModal = ({ onClose }: InviteMembersModalProps) => {
               onChange={(event) => {
                 setEmail(event.target.value)
               }}
-              placeholder="Enter email"
+              placeholder={t(language, 'invite.emailPlaceholder')}
             />
           </label>
 
           <button className="invite-modal__submit" type="submit">
-            Send Invite
+            {t(language, 'invite.send')}
           </button>
         </form>
 
         <div className="invite-modal__members">
-          <p className="invite-modal__label">Members</p>
+          <p className="invite-modal__label">{t(language, 'invite.members')}</p>
           <div className="invite-member-list">
             {members.map((member) => (
               <div className="invite-member" key={member.id}>
@@ -166,11 +169,13 @@ const InviteMembersModal = ({ onClose }: InviteMembersModalProps) => {
         </div>
 
         <div className="invite-modal__link-block">
-          <p className="invite-modal__label">Invite Link</p>
+          <p className="invite-modal__label">{t(language, 'invite.link')}</p>
           <div className="invite-modal__link-row">
             <input className="invite-modal__input" readOnly value={inviteLink} />
             <button className="invite-modal__submit" type="button" onClick={handleCopy}>
-              {copyState === 'copied' ? 'Copied' : 'Copy Link'}
+              {copyState === 'copied'
+                ? t(language, 'invite.copied')
+                : t(language, 'invite.copy')}
             </button>
           </div>
         </div>

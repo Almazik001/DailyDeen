@@ -24,7 +24,7 @@ export async function createTaskForCategory(
 ) {
   const lookups = await loadTaskLookups()
   const category = findLookupByName(lookups.categories, categoryName)
-  const status = findLookupByName(lookups.statuses, 'Not Started')
+  const status = findLookupByName(lookups.statuses, formState.status)
   const priority = findLookupByName(lookups.priorities, formState.priority)
 
   if (!category || !status || !priority) {
@@ -47,19 +47,35 @@ export async function createTaskForCategory(
 export async function updateTaskFromForm(task: ApiTask, formState: TaskFormState) {
   const lookups = await loadTaskLookups()
   const priority = findLookupByName(lookups.priorities, formState.priority)
+  const status = findLookupByName(lookups.statuses, formState.status)
 
-  if (!priority) {
-    throw new Error('Task priorities are not configured in the database')
+  if (!priority || !status) {
+    throw new Error('Task priorities or statuses are not configured in the database')
   }
 
   const { task: updatedTask } = await updateTask(task.id, {
     title: formState.title.trim(),
     description: getTaskDescription(formState.description),
     categoryId: task.category.id,
-    statusId: task.status.id,
+    statusId: status.id,
     priorityId: priority.id,
     dueDate: formState.date || null,
     imageUrl: getTaskImageUrl(formState.imagePreview),
+  })
+
+  return updatedTask
+}
+
+export async function updateTaskStatus(task: ApiTask, statusName: string) {
+  const lookups = await loadTaskLookups()
+  const status = findLookupByName(lookups.statuses, statusName)
+
+  if (!status) {
+    throw new Error('Task statuses are not configured in the database')
+  }
+
+  const { task: updatedTask } = await updateTask(task.id, {
+    statusId: status.id,
   })
 
   return updatedTask

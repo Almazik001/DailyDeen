@@ -1,11 +1,24 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { IMaskInput } from 'react-imask'
+import CalendarIcon from '../../assets/icons/calendar-icon.svg'
 import Button from '../../components/ui/Button/Button'
 import Checkbox from '../../components/ui/Checkbox/Checkbox'
 import Input from '../../components/ui/Input/Input'
 import inputStyles from '../../components/ui/Input/Input.module.scss'
 import type { StoredUser } from '../../features/auth/authStorage'
 import { updateStoredUserProfile } from '../../features/auth/authStorage'
+import {
+  buildCalendarCells,
+  canNavigateCalendarMonth,
+  formatCalendarLongDate,
+  formatCalendarMonthLabel,
+  formatCalendarValue,
+  getCalendarMonthNames,
+  getCalendarWeekdayLabels,
+  parseCalendarValue,
+  shiftCalendarMonth,
+  startOfCalendarMonth,
+} from '../../features/calendar/calendarUtils'
 import {
   applyTheme,
   getAppSettings,
@@ -15,6 +28,8 @@ import {
   type ThemeMode,
 } from '../../features/settings/settingsStorage'
 import { t } from '../../features/settings/translations'
+import { formatDisplayDate } from '../../features/tasks/taskUi'
+import { useCurrentDate } from '../../hooks/useCurrentDate'
 import styles from './SettingsPage.module.scss'
 
 type SettingsPageProps = {
@@ -27,6 +42,7 @@ type AccountFormState = {
   firstName: string
   lastName: string
   email: string
+  birthDate: string
   contactNumber: string
   position: string
   avatarUrl: string
@@ -36,6 +52,7 @@ const createFormState = (user: StoredUser | null): AccountFormState => ({
   firstName: user?.firstName ?? '',
   lastName: user?.lastName ?? '',
   email: user?.email ?? '',
+  birthDate: user?.birthDate ? user.birthDate.slice(0, 10) : '',
   contactNumber: user?.contactNumber ?? '',
   position: user?.position ?? 'Product Manager',
   avatarUrl: user?.avatarUrl ?? '',
@@ -76,6 +93,12 @@ const SettingsPage = ({
   const [settings, setSettings] = useState<AppSettings>(() => getAppSettings())
   const [accountMessage, setAccountMessage] = useState('')
   const [preferencesMessage, setPreferencesMessage] = useState('')
+  const [isBirthDateCalendarOpen, setIsBirthDateCalendarOpen] = useState(false)
+  const [birthDateViewDate, setBirthDateViewDate] = useState(() =>
+    startOfCalendarMonth(new Date()),
+  )
+  const birthDateFieldRef = useRef<HTMLDivElement | null>(null)
+  const currentDate = useCurrentDate()
 
   useEffect(() => {
     setAccountForm(createFormState(currentUser))
@@ -89,6 +112,32 @@ const SettingsPage = ({
     applyTheme(settings.theme)
   }, [settings.theme])
 
+  useEffect(() => {
+    if (!isBirthDateCalendarOpen) {
+      return undefined
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!birthDateFieldRef.current?.contains(event.target as Node)) {
+        setIsBirthDateCalendarOpen(false)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsBirthDateCalendarOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isBirthDateCalendarOpen])
+
   const displayName = useMemo(() => {
     if (!currentUser) {
       return t(language, 'common.guest')
@@ -98,12 +147,87 @@ const SettingsPage = ({
     return fullName || currentUser.username
   }, [accountForm.firstName, accountForm.lastName, currentUser, language])
 
+  const birthDateValue = useMemo(
+    () => parseCalendarValue(accountForm.birthDate),
+    [accountForm.birthDate],
+  )
+  const birthDateMonthNames = useMemo(() => getCalendarMonthNames(language), [language])
+  const birthDateWeekdays = useMemo(() => getCalendarWeekdayLabels(language), [language])
+  const birthDateMonthLabel = useMemo(
+    () => formatCalendarMonthLabel(birthDateViewDate, language),
+    [birthDateViewDate, language],
+  )
+  const birthDateSummaryLabel = useMemo(
+    () =>
+      birthDateValue
+        ? formatCalendarLongDate(birthDateValue, language)
+        : formatCalendarLongDate(currentDate, language),
+    [birthDateValue, currentDate, language],
+  )
+  const birthDateCells = useMemo(
+    () =>
+      buildCalendarCells({
+        viewDate: birthDateViewDate,
+        selectedDate: birthDateValue,
+        currentDate,
+        maxDate: currentDate,
+      }),
+    [birthDateValue, birthDateViewDate, currentDate],
+  )
+  const maxBirthDate = useMemo(() => formatCalendarValue(currentDate), [currentDate])
+  const canGoToPreviousBirthMonth = useMemo(
+    () => canNavigateCalendarMonth(birthDateViewDate, -1),
+    [birthDateViewDate],
+  )
+  const canGoToNextBirthMonth = useMemo(
+    () => canNavigateCalendarMonth(birthDateViewDate, 1, null, currentDate),
+    [birthDateViewDate, currentDate],
+  )
+  const birthDateYearOptions = useMemo(() => {
+    const currentYear = currentDate.getFullYear()
+    return Array.from({ length: 121 }, (_, index) => currentYear - index)
+  }, [currentDate])
+
   const handleAccountFieldChange = (name: keyof AccountFormState, value: string) => {
     setAccountMessage('')
     setAccountForm((current) => ({
       ...current,
       [name]: value,
     }))
+  }
+
+  const handleBirthDateCalendarToggle = () => {
+    setBirthDateViewDate(startOfCalendarMonth(birthDateValue ?? currentDate))
+    setIsBirthDateCalendarOpen((current) => !current)
+  }
+
+  const handleBirthDateSelect = (date: Date) => {
+    handleAccountFieldChange('birthDate', formatCalendarValue(date))
+    setBirthDateViewDate(startOfCalendarMonth(date))
+    setIsBirthDateCalendarOpen(false)
+  }
+
+  const handleBirthMonthChange = (month: number) => {
+    setBirthDateViewDate((current) => {
+      const nextDate = new Date(current.getFullYear(), month, 1)
+
+      if (nextDate.getTime() > startOfCalendarMonth(currentDate).getTime()) {
+        return startOfCalendarMonth(currentDate)
+      }
+
+      return nextDate
+    })
+  }
+
+  const handleBirthYearChange = (year: number) => {
+    setBirthDateViewDate((current) => {
+      const safeMonth =
+        year === currentDate.getFullYear() && current.getMonth() > currentDate.getMonth()
+          ? currentDate.getMonth()
+          : current.getMonth()
+
+      return new Date(year, safeMonth, 1)
+    })
   }
 
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +261,7 @@ const SettingsPage = ({
       firstName: accountForm.firstName.trim(),
       lastName: accountForm.lastName.trim(),
       email: accountForm.email.trim(),
+      birthDate: accountForm.birthDate || null,
       contactNumber: accountForm.contactNumber.trim(),
       position: accountForm.position.trim(),
       avatarUrl: accountForm.avatarUrl,
@@ -308,6 +433,173 @@ const SettingsPage = ({
                     handleAccountFieldChange('email', event.target.value)
                   }}
                 />
+              </label>
+
+              <label className={styles.field}>
+                <span>{t(language, 'settings.birthDate')}</span>
+                <div className={styles.dateField} ref={birthDateFieldRef}>
+                  <div className={styles.dateInputRow}>
+                    <Input
+                      className={`${styles.input} ${styles.dateInput}`}
+                      type="date"
+                      max={maxBirthDate}
+                      value={accountForm.birthDate}
+                      onChange={(event) => {
+                        handleAccountFieldChange('birthDate', event.target.value)
+                        const nextValue = parseCalendarValue(event.target.value)
+
+                        if (nextValue) {
+                          setBirthDateViewDate(startOfCalendarMonth(nextValue))
+                        }
+                      }}
+                    />
+                    <button
+                      className={`${styles.datePickerButton}${
+                        isBirthDateCalendarOpen ? ` ${styles.datePickerButtonActive}` : ''
+                      }`}
+                      type="button"
+                      aria-expanded={isBirthDateCalendarOpen}
+                      aria-haspopup="dialog"
+                      aria-label={t(language, 'settings.birthDate')}
+                      onClick={handleBirthDateCalendarToggle}
+                    >
+                      <img src={CalendarIcon} alt="" />
+                    </button>
+                  </div>
+
+                  {isBirthDateCalendarOpen ? (
+                    <div
+                      className={styles.datePickerPopover}
+                      role="dialog"
+                      aria-label={t(language, 'settings.birthDate')}
+                    >
+                      <div className={styles.datePickerHead}>
+                        <button
+                          className={styles.datePickerSummary}
+                          type="button"
+                          onClick={() => {
+                            setBirthDateViewDate(
+                              startOfCalendarMonth(birthDateValue ?? currentDate),
+                            )
+                          }}
+                        >
+                          {birthDateSummaryLabel}
+                        </button>
+                        <button
+                          className={styles.datePickerClose}
+                          type="button"
+                          aria-label={t(language, 'common.goBack')}
+                          onClick={() => {
+                            setIsBirthDateCalendarOpen(false)
+                          }}
+                        >
+                          &times;
+                        </button>
+                      </div>
+
+                      <div className={styles.datePickerControls}>
+                        <label className={styles.datePickerControl}>
+                          <span>{t(language, 'common.month')}</span>
+                          <select
+                            className={styles.datePickerSelect}
+                            value={birthDateViewDate.getMonth()}
+                            onChange={(event) => {
+                              handleBirthMonthChange(Number(event.target.value))
+                            }}
+                          >
+                            {birthDateMonthNames.map((monthName, index) => (
+                              <option
+                                key={monthName}
+                                value={index}
+                                disabled={
+                                  birthDateViewDate.getFullYear() === currentDate.getFullYear() &&
+                                  index > currentDate.getMonth()
+                                }
+                              >
+                                {monthName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className={styles.datePickerControl}>
+                          <span>{t(language, 'common.year')}</span>
+                          <select
+                            className={styles.datePickerSelect}
+                            value={birthDateViewDate.getFullYear()}
+                            onChange={(event) => {
+                              handleBirthYearChange(Number(event.target.value))
+                            }}
+                          >
+                            {birthDateYearOptions.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+
+                      <div className={styles.datePickerMonth}>
+                        <button
+                          className={styles.datePickerNav}
+                          type="button"
+                          aria-label={t(language, 'header.previousMonth')}
+                          disabled={!canGoToPreviousBirthMonth}
+                          onClick={() => {
+                            setBirthDateViewDate((current) =>
+                              shiftCalendarMonth(current, -1),
+                            )
+                          }}
+                        >
+                          &#8249;
+                        </button>
+                        <span>{birthDateMonthLabel}</span>
+                        <button
+                          className={styles.datePickerNav}
+                          type="button"
+                          aria-label={t(language, 'header.nextMonth')}
+                          disabled={!canGoToNextBirthMonth}
+                          onClick={() => {
+                            setBirthDateViewDate((current) =>
+                              shiftCalendarMonth(current, 1),
+                            )
+                          }}
+                        >
+                          &#8250;
+                        </button>
+                      </div>
+
+                      <div className={styles.datePickerWeekdays}>
+                        {birthDateWeekdays.map((day) => (
+                          <span key={day}>{day}</span>
+                        ))}
+                      </div>
+
+                      <div className={styles.datePickerGrid}>
+                        {birthDateCells.map((cell) =>
+                          cell.date ? (
+                            <button
+                              key={cell.key}
+                              className={`${styles.datePickerDay}${
+                                cell.isSelected ? ` ${styles.datePickerDaySelected}` : ''
+                              }${cell.isToday ? ` ${styles.datePickerDayToday}` : ''}`}
+                              type="button"
+                              disabled={cell.isDisabled}
+                              onClick={() => {
+                                handleBirthDateSelect(cell.date as Date)
+                              }}
+                            >
+                              {cell.dayNumber}
+                            </button>
+                          ) : (
+                            <span key={cell.key} className={styles.datePickerEmpty} />
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </label>
 
               <label className={styles.field}>
@@ -488,6 +780,10 @@ const SettingsPage = ({
                 <div className={styles.infoItem}>
                   <span>{t(language, 'settings.role')}</span>
                   <strong>{accountForm.position || t(language, 'settings.teamMember')}</strong>
+                </div>
+                <div className={styles.infoItem}>
+                  <span>{t(language, 'settings.birthDate')}</span>
+                  <strong>{formatDisplayDate(accountForm.birthDate, language)}</strong>
                 </div>
                 <div className={styles.infoItem}>
                   <span>{t(language, 'settings.activeLanguage')}</span>

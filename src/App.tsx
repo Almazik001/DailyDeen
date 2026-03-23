@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import Header from './components/layout/Header/Header'
 import Sidebar from './components/layout/Sidebar/Sidebar'
 import type { AppView } from './components/layout/Sidebar/navigation'
+import UserHints from './components/help/UserHints/UserHints'
+import {
+  dismissBirthdayGreeting,
+  isBirthdayGreetingDismissed,
+  isBirthdayToday,
+} from './features/birthday/birthdayGreeting'
+import BirthdayGreetingModal from './features/birthday/BirthdayGreetingModal/BirthdayGreetingModal'
 import {
   getAuthenticatedUser,
   hydrateAuthenticatedUser,
@@ -17,7 +24,9 @@ import {
   type AppSettings,
   type ThemeMode,
 } from './features/settings/settingsStorage'
+import { useCurrentDate } from './hooks/useCurrentDate'
 import DashboardPage from './pages/DashboardPage/DashboardPage'
+import HelpPage from './pages/HelpPage/HelpPage'
 import MyTaskPage from './pages/MyTaskPage/MyTaskPage'
 import PlaceholderPage from './pages/PlaceholderPage/PlaceholderPage'
 import SettingsPage from './pages/SettingsPage/SettingsPage'
@@ -65,6 +74,8 @@ function App() {
     getAppSettings(),
   )
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false)
+  const currentDate = useCurrentDate()
 
   useEffect(() => {
     applyTheme(appSettings.theme)
@@ -179,6 +190,23 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!authReady || !authenticated || !currentUser) {
+      setIsBirthdayModalOpen(false)
+      return
+    }
+
+    if (
+      !isBirthdayToday(currentUser, currentDate) ||
+      isBirthdayGreetingDismissed(currentUser.id, currentDate)
+    ) {
+      setIsBirthdayModalOpen(false)
+      return
+    }
+
+    setIsBirthdayModalOpen(true)
+  }, [authReady, authenticated, currentDate, currentUser])
+
   const handleNavigate = (view: AppView) => {
     setIsSidebarOpen(false)
 
@@ -193,6 +221,7 @@ function App() {
   const handleLogout = () => {
     logoutUser()
     setIsSidebarOpen(false)
+    setIsBirthdayModalOpen(false)
     setAuthenticated(false)
     setCurrentUser(null)
     window.location.hash = 'sign-in'
@@ -211,6 +240,14 @@ function App() {
 
   const handleUserUpdate = (user: StoredUser) => {
     setCurrentUser(user)
+  }
+
+  const handleCloseBirthdayModal = () => {
+    if (currentUser) {
+      dismissBirthdayGreeting(currentUser.id, currentDate)
+    }
+
+    setIsBirthdayModalOpen(false)
   }
 
   const handleThemeChange = (theme: ThemeMode) => {
@@ -252,15 +289,15 @@ function App() {
     }
 
     if (activeView === 'my-task') {
-      return <MyTaskPage />
+      return <MyTaskPage language={appSettings.language} />
     }
 
     if (activeView === 'vital-task') {
-      return <VitalTaskPage />
+      return <VitalTaskPage language={appSettings.language} />
     }
 
     if (activeView === 'task-categories') {
-      return <TaskCategoriesPage />
+      return <TaskCategoriesPage language={appSettings.language} />
     }
 
     if (activeView === 'settings') {
@@ -271,6 +308,10 @@ function App() {
           onUserUpdate={handleUserUpdate}
         />
       )
+    }
+
+    if (activeView === 'help') {
+      return <HelpPage language={appSettings.language} />
     }
 
     return <PlaceholderPage language={appSettings.language} view={activeView} />
@@ -320,6 +361,16 @@ function App() {
 
         <section className="content-area">{renderActiveView()}</section>
       </main>
+
+      <UserHints currentView={activeView} language={appSettings.language} />
+      {currentUser ? (
+        <BirthdayGreetingModal
+          isOpen={isBirthdayModalOpen}
+          language={appSettings.language}
+          user={currentUser}
+          onClose={handleCloseBirthdayModal}
+        />
+      ) : null}
     </div>
   )
 }

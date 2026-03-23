@@ -152,18 +152,6 @@ function CloseIcon() {
   )
 }
 
-const closeLabelMap: Record<LanguageMode, string> = {
-  english: 'Close menu',
-  russian: 'Close menu',
-  kazakh: 'Close menu',
-}
-
-const menuTitleMap: Record<LanguageMode, string> = {
-  english: 'Menu',
-  russian: 'Menu',
-  kazakh: 'Menu',
-}
-
 function SidebarIcon({ view }: { view: AppView }) {
   if (view === 'dashboard') return <DashboardIcon />
   if (view === 'vital-task') return <VitalIcon />
@@ -183,17 +171,17 @@ const Sidebar = ({
   isOpen,
   onClose,
 }: SidebarProps) => {
-  const displayName = currentUser?.username ?? 'guest'
-  const displayEmail = currentUser?.email ?? 'guest@example.com'
+  const displayName = currentUser?.username ?? t(currentLanguage, 'common.guest')
+  const displayEmail = currentUser?.email ?? t(currentLanguage, 'settings.noEmail')
   const avatarLetter = displayName.charAt(0).toUpperCase() || 'G'
   const avatarUrl = currentUser?.avatarUrl
 
   return (
     <aside className={`sidebar${isOpen ? ' is-open' : ''}`} id="app-sidebar">
       <div className="sidebar__mobile-head">
-        <span className="sidebar__mobile-title">{menuTitleMap[currentLanguage]}</span>
+        <span className="sidebar__mobile-title">{t(currentLanguage, 'sidebar.menu')}</span>
         <button
-          aria-label={closeLabelMap[currentLanguage]}
+          aria-label={t(currentLanguage, 'sidebar.closeMenu')}
           className="sidebar__close"
           type="button"
           onClick={onClose}
@@ -208,7 +196,7 @@ const Sidebar = ({
         <div className="sidebar__email">{displayEmail}</div>
       </div>
 
-      <nav className="sidebar__nav" aria-label="Dashboard navigation">
+      <nav className="sidebar__nav" aria-label={t(currentLanguage, 'sidebar.navigation')}>
         {sidebarItems.map((item) => (
           <button
             key={item.view}

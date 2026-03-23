@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ApiTask } from '../../api/types'
 import { getApiErrorMessage } from '../../api/apiClient'
+import type { LanguageMode } from '../../features/settings/settingsStorage'
+import { t } from '../../features/settings/translations'
 import TaskFormModal, {
   type TaskFormState,
 } from '../../features/task-form/TaskFormModal'
@@ -11,9 +13,13 @@ import {
 } from '../../features/tasks/taskData'
 import {
   formatDisplayDate,
+  getPriorityLabel,
   getPriorityVisual,
+  getStatusLabel,
   getStatusColor,
+  getTaskDescriptionText,
   priorityMeta,
+  statusMeta,
   toTaskFormState,
   toTaskImage,
 } from '../../features/tasks/taskUi'
@@ -52,16 +58,11 @@ function EditIcon() {
   )
 }
 
-const emptyTaskFormState: TaskFormState = {
-  title: '',
-  date: '',
-  priority: 'Moderate',
-  description: '',
-  imagePreview: '',
-  imageName: '',
+type VitalTaskPageProps = {
+  language: LanguageMode
 }
 
-const VitalTaskPage = () => {
+const VitalTaskPage = ({ language }: VitalTaskPageProps) => {
   const [tasks, setTasks] = useState<ApiTask[]>([])
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -74,17 +75,26 @@ const VitalTaskPage = () => {
         setTasks(nextTasks)
         setSelectedTaskId(nextTasks[0]?.id ?? null)
       } catch (error) {
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load tasks'))
+        setErrorMessage(getApiErrorMessage(error, t(language, 'task.loadError')))
       }
     }
 
     void loadTasks()
-  }, [])
+  }, [language])
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   )
+
+  const handleEditTask = (task: ApiTask) => {
+    if (import.meta.env.DEV) {
+      console.log('[VitalTaskPage] edit task click', task)
+    }
+
+    setSelectedTaskId(task.id)
+    setIsEditModalOpen(true)
+  }
 
   const handleEditSubmit = async (formState: TaskFormState) => {
     if (!selectedTask) {
@@ -100,7 +110,7 @@ const VitalTaskPage = () => {
 
       setIsEditModalOpen(false)
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to update task'))
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.updateError')))
     }
   }
 
@@ -123,7 +133,7 @@ const VitalTaskPage = () => {
       setTasks(remainingTasks)
       setSelectedTaskId(nextTask?.id ?? null)
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to delete task'))
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.deleteError')))
     }
   }
 
@@ -131,8 +141,8 @@ const VitalTaskPage = () => {
     return (
       <div className="my-task-layout">
         <section className="dashboard-panel my-task-panel my-task-list-panel">
-          <h2 className="section-title">Vital Tasks</h2>
-          <p>{errorMessage || 'No tasks yet in this category.'}</p>
+          <h2 className="section-title">{t(language, 'sidebar.vital-task')}</h2>
+          <p>{errorMessage || t(language, 'task.noTasksCategory')}</p>
         </section>
       </div>
     )
@@ -141,7 +151,7 @@ const VitalTaskPage = () => {
   return (
     <div className="my-task-layout">
       <section className="dashboard-panel my-task-panel my-task-list-panel">
-        <h2 className="section-title">Vital Tasks</h2>
+        <h2 className="section-title">{t(language, 'sidebar.vital-task')}</h2>
 
         {errorMessage ? <p>{errorMessage}</p> : null}
 
@@ -152,7 +162,7 @@ const VitalTaskPage = () => {
               className={`my-task-card${selectedTask.id === task.id ? ' is-active' : ''}`}
               type="button"
               onClick={() => {
-                setSelectedTaskId(task.id)
+                handleEditTask(task)
               }}
             >
               <OverflowIcon />
@@ -165,24 +175,28 @@ const VitalTaskPage = () => {
                   />
                   <div>
                     <h3 className="my-task-card__title">{task.title}</h3>
-                    <p className="my-task-card__description">{task.description}</p>
+                    <p className="my-task-card__description">
+                      {getTaskDescriptionText(task.description, language)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="my-task-card__footer">
                   <span>
-                    Priority:{' '}
+                    {t(language, 'task.priority')}: {' '}
                     <strong style={{ color: getPriorityVisual(task.priority.name).textColor }}>
-                      {task.priority.name}
+                      {getPriorityLabel(task.priority.name, language)}
                     </strong>
                   </span>
                   <span>
-                    Status:{' '}
+                    {t(language, 'task.status')}: {' '}
                     <strong style={{ color: getStatusColor(task.status.name) }}>
-                      {task.status.name}
+                      {getStatusLabel(task.status.name, language)}
                     </strong>
                   </span>
-                  <span>Created on: {formatDisplayDate(task.createdAt)}</span>
+                  <span>
+                    {t(language, 'task.createdOn')}: {formatDisplayDate(task.createdAt, language)}
+                  </span>
                 </div>
               </div>
 
@@ -215,30 +229,36 @@ const VitalTaskPage = () => {
           <div className="my-task-detail__summary">
             <h2>{selectedTask.title}</h2>
             <p>
-              Priority:{' '}
+              {t(language, 'task.priority')}: {' '}
               <strong style={{ color: getPriorityVisual(selectedTask.priority.name).textColor }}>
-                {selectedTask.priority.name}
+                {getPriorityLabel(selectedTask.priority.name, language)}
               </strong>
             </p>
             <p>
-              Status:{' '}
+              {t(language, 'task.status')}: {' '}
               <strong style={{ color: getStatusColor(selectedTask.status.name) }}>
-                {selectedTask.status.name}
+                {getStatusLabel(selectedTask.status.name, language)}
               </strong>
             </p>
-            <span>Created on: {formatDisplayDate(selectedTask.createdAt)}</span>
+            <span>
+              {t(language, 'task.createdOn')}: {formatDisplayDate(selectedTask.createdAt, language)}
+            </span>
           </div>
         </div>
 
         <div className="my-task-detail__body">
-          <p>{selectedTask.description}</p>
+          <p>{getTaskDescriptionText(selectedTask.description, language)}</p>
           <div className="my-task-detail__paragraphs">
-            <p>{selectedTask.description}</p>
+            <p>{getTaskDescriptionText(selectedTask.description, language)}</p>
           </div>
           <ol className="my-task-detail__tips">
-            <li>Category: {selectedTask.category.name}</li>
-            <li>Priority: {selectedTask.priority.name}</li>
-            <li>Deadline: {formatDisplayDate(selectedTask.dueDate)}</li>
+            <li>{t(language, 'task.category')}: {selectedTask.category.name}</li>
+            <li>
+              {t(language, 'task.priority')}: {getPriorityLabel(selectedTask.priority.name, language)}
+            </li>
+            <li>
+              {t(language, 'task.deadline')}: {formatDisplayDate(selectedTask.dueDate, language)}
+            </li>
           </ol>
         </div>
 
@@ -246,7 +266,7 @@ const VitalTaskPage = () => {
           <button
             className="my-task-detail__action"
             type="button"
-            aria-label="Delete task"
+            aria-label={t(language, 'task.deleteTask')}
             onClick={() => {
               void handleDeleteTask()
             }}
@@ -256,9 +276,9 @@ const VitalTaskPage = () => {
           <button
             className="my-task-detail__action"
             type="button"
-            aria-label="Edit task"
+            aria-label={t(language, 'task.editTask')}
             onClick={() => {
-              setIsEditModalOpen(true)
+              handleEditTask(selectedTask)
             }}
           >
             <EditIcon />
@@ -266,16 +286,20 @@ const VitalTaskPage = () => {
         </div>
       </section>
 
-      <TaskFormModal
-        isOpen={isEditModalOpen}
-        mode="edit"
-        initialState={selectedTask ? toTaskFormState(selectedTask) : emptyTaskFormState}
-        priorityMeta={priorityMeta}
-        onClose={() => {
-          setIsEditModalOpen(false)
-        }}
-        onSubmit={handleEditSubmit}
-      />
+      {isEditModalOpen && selectedTask ? (
+        <TaskFormModal
+          isOpen={isEditModalOpen}
+          language={language}
+          mode="edit"
+          initialState={toTaskFormState(selectedTask)}
+          priorityMeta={priorityMeta}
+          statusMeta={statusMeta}
+          onClose={() => {
+            setIsEditModalOpen(false)
+          }}
+          onSubmit={handleEditSubmit}
+        />
+      ) : null}
     </div>
   )
 }

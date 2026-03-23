@@ -1,10 +1,17 @@
 import type { ApiTask } from '../../../api/types'
 import { getCompletedAgoLabel } from '../../../features/tasks/dashboardData'
-import { toTaskImage } from '../../../features/tasks/taskUi'
+import type { LanguageMode } from '../../../features/settings/settingsStorage'
+import { t } from '../../../features/settings/translations'
+import {
+  getStatusLabel,
+  getTaskDescriptionText,
+  toTaskImage,
+} from '../../../features/tasks/taskUi'
 import './CompletedTasks.module.scss'
 
 type CompletedTasksProps = {
   tasks: ApiTask[]
+  language?: LanguageMode
 }
 
 function CompletedPanelIcon() {
@@ -41,13 +48,16 @@ function OverflowIcon() {
   )
 }
 
-const CompletedTasks = ({ tasks }: CompletedTasksProps) => {
+const CompletedTasks = ({
+  tasks,
+  language = 'english',
+}: CompletedTasksProps) => {
   return (
     <section className="dashboard-panel completed-panel">
       <div className="panel-head">
         <div className="panel-title">
           <CompletedPanelIcon />
-          <h2>Completed Task</h2>
+          <h2>{t(language, 'dashboard.completedTaskTitle')}</h2>
         </div>
       </div>
 
@@ -64,14 +74,21 @@ const CompletedTasks = ({ tasks }: CompletedTasksProps) => {
                 />
                 <div>
                   <h3 className="task-card__title">{task.title}</h3>
-                  <p className="task-card__description">{task.description}</p>
+                  <p className="task-card__description">
+                    {getTaskDescriptionText(task.description, language)}
+                  </p>
                 </div>
               </div>
 
               <p className="task-card__status-note">
-                Status: <strong style={{ color: '#57AE35' }}>Completed</strong>
+                {t(language, 'task.status')}:{' '}
+                <strong style={{ color: '#57AE35' }}>
+                  {getStatusLabel('Completed', language)}
+                </strong>
               </p>
-              <p className="task-card__completed-note">{getCompletedAgoLabel(task)}</p>
+              <p className="task-card__completed-note">
+                {getCompletedAgoLabel(task, language)}
+              </p>
             </div>
 
             <div

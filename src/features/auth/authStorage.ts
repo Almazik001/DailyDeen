@@ -5,6 +5,7 @@ import type { ApiUser, RegisterPayload, UpdateCurrentUserPayload } from '../../a
 import { updateCurrentUser as updateCurrentUserRequest } from '../../api/users.api'
 
 type StoredUser = ApiUser
+type StoredUserProfilePayload = UpdateCurrentUserPayload
 
 export function getStoredUser() {
   return getStoredUserSnapshot()
@@ -47,9 +48,19 @@ export async function loginUser(
 
     persistAuthSession(result.user, result.token, rememberMe)
 
+    let nextUser = result.user
+
+    try {
+      const { user } = await getCurrentUserRequest()
+      persistUserSnapshot(user)
+      nextUser = getStoredUserSnapshot() ?? user
+    } catch {
+      nextUser = getStoredUserSnapshot() ?? result.user
+    }
+
     return {
       success: true as const,
-      user: result.user,
+      user: nextUser,
     }
   } catch (error) {
     return {
@@ -76,11 +87,19 @@ export async function hydrateAuthenticatedUser() {
   }
 }
 
-export async function updateStoredUserProfile(profile: UpdateCurrentUserPayload) {
+export async function updateStoredUserProfile(profile: StoredUserProfilePayload) {
   try {
     const { user } = await updateCurrentUserRequest(profile)
-    persistUserSnapshot(user)
-    return user
+    const nextUser = {
+      ...user,
+      birthDate:
+        profile.birthDate !== undefined
+          ? profile.birthDate
+          : user.birthDate ?? getStoredUserSnapshot()?.birthDate ?? null,
+    }
+
+    persistUserSnapshot(nextUser)
+    return nextUser
   } catch {
     return null
   }

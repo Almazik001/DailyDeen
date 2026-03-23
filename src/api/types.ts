@@ -11,6 +11,7 @@ export type ApiUser = {
   lastName: string
   username: string
   email: string
+  birthDate?: string | null
   contactNumber: string | null
   position: string | null
   avatarUrl: string | null
@@ -54,6 +55,7 @@ export type UpdateCurrentUserPayload = {
   firstName?: string
   lastName?: string
   email?: string
+  birthDate?: string | null
   contactNumber?: string | null
   position?: string | null
   avatarUrl?: string | null

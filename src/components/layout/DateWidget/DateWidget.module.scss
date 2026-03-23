@@ -1,4 +1,5 @@
 .dateWidget {
+  position: relative;
   display: grid;
   gap: 2px;
   justify-items: start;
@@ -8,6 +9,21 @@
   background: transparent;
   box-shadow: none;
   backdrop-filter: none;
+}
+
+.dateWidgetBirthday {
+  isolation: isolate;
+  padding: 10px 14px;
+  border: 1px solid rgba(239, 115, 104, 0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 28%),
+    linear-gradient(135deg, rgba(255, 244, 238, 0.96), rgba(255, 250, 246, 0.94));
+  box-shadow:
+    0 16px 30px rgba(239, 115, 104, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  overflow: visible;
+  animation: birthdayPulse 2.8s ease-in-out infinite;
 }
 
 .weekday {
@@ -26,9 +42,120 @@
   line-height: 1.2;
 }
 
+.dateWidgetBirthday .weekday {
+  color: #d85f4f;
+  text-shadow: 0 0 18px rgba(239, 115, 104, 0.18);
+}
+
+.dateWidgetBirthday .date {
+  color: #c16b5c;
+}
+
+.burst,
+.glow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.glow {
+  inset: -12px;
+  z-index: -1;
+  border-radius: 24px;
+  background: radial-gradient(circle, rgba(239, 115, 104, 0.2) 0%, transparent 68%);
+  filter: blur(8px);
+  animation: birthdayGlow 3.2s ease-in-out infinite;
+}
+
+.burst {
+  top: 50%;
+  width: 62px;
+  height: 62px;
+  opacity: 0.9;
+  transform: translateY(-50%) scale(0.92);
+  background:
+    radial-gradient(circle, rgba(239, 115, 104, 0.9) 0 10%, transparent 11%),
+    radial-gradient(circle, rgba(255, 189, 118, 0.85) 0 8%, transparent 9%),
+    radial-gradient(circle, rgba(79, 109, 255, 0.72) 0 7%, transparent 8%);
+  background-size: 10px 10px, 9px 9px, 8px 8px;
+  background-repeat: no-repeat;
+  animation: birthdayBurst 1.8s var(--ease-soft, ease) infinite;
+}
+
+.burstLeft {
+  left: -22px;
+  background-position: 8px 28px, 20px 8px, 36px 24px;
+}
+
+.burstRight {
+  right: -24px;
+  animation-delay: 0.35s;
+  background-position: 42px 14px, 16px 24px, 26px 44px;
+}
+
+@keyframes birthdayPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      0 16px 30px rgba(239, 115, 104, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  50% {
+    transform: translateY(-1px);
+    box-shadow:
+      0 20px 34px rgba(239, 115, 104, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+}
+
+@keyframes birthdayGlow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes birthdayBurst {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.5) rotate(-8deg);
+  }
+
+  20% {
+    opacity: 0.95;
+  }
+
+  65% {
+    opacity: 0.82;
+    transform: translateY(-50%) scale(1.08) rotate(6deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.28) rotate(12deg);
+  }
+}
+
 :global(:root[data-theme='soft-dark']) .dateWidget {
   background: transparent;
   box-shadow: none;
+}
+
+:global(:root[data-theme='soft-dark']) .dateWidgetBirthday {
+  border-color: rgba(239, 115, 104, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 28%),
+    linear-gradient(135deg, rgba(47, 36, 40, 0.96), rgba(33, 29, 37, 0.95));
+  box-shadow:
+    0 18px 34px rgba(239, 115, 104, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 :global(:root[data-theme='soft-dark']) .weekday {
@@ -39,9 +166,26 @@
   color: #9da6b6;
 }
 
+:global(:root[data-theme='soft-dark']) .dateWidgetBirthday .weekday {
+  color: #ffb19d;
+}
+
+:global(:root[data-theme='soft-dark']) .dateWidgetBirthday .date {
+  color: #f5c0b4;
+}
+
+:global(:root[data-theme='soft-dark']) .glow {
+  background: radial-gradient(circle, rgba(239, 115, 104, 0.26) 0%, transparent 68%);
+}
+
 @media (max-width: 640px) {
   .dateWidget {
     gap: 1px;
+  }
+
+  .dateWidgetBirthday {
+    padding: 8px 10px;
+    border-radius: 14px;
   }
 
   .weekday {
@@ -50,5 +194,18 @@
 
   .date {
     font-size: 0.8rem;
+  }
+
+  .burst {
+    width: 48px;
+    height: 48px;
+  }
+
+  .burstLeft {
+    left: -18px;
+  }
+
+  .burstRight {
+    right: -18px;
   }
 }

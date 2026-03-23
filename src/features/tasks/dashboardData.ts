@@ -1,4 +1,6 @@
 import type { ApiTask } from '../../api/types'
+import type { LanguageMode } from '../settings/settingsStorage'
+import { t } from '../settings/translations'
 import { getAllTasks } from './taskData'
 
 export type DashboardStatusItem = {
@@ -50,23 +52,25 @@ export async function loadDashboardData() {
   }
 }
 
-export function getCompletedAgoLabel(task: ApiTask) {
+export function getCompletedAgoLabel(task: ApiTask, language: LanguageMode) {
   const date = new Date(task.updatedAt)
 
   if (Number.isNaN(date.getTime())) {
-    return 'Completed recently.'
+    return t(language, 'task.completedRecently')
   }
 
   const diffInMs = Date.now() - date.getTime()
   const diffInDays = Math.max(0, Math.floor(diffInMs / (1000 * 60 * 60 * 24)))
 
   if (diffInDays === 0) {
-    return 'Completed today.'
+    return t(language, 'task.completedToday')
   }
 
   if (diffInDays === 1) {
-    return 'Completed 1 day ago.'
+    return t(language, 'task.completedOneDayAgo')
   }
 
-  return `Completed ${diffInDays} days ago.`
+  return t(language, 'task.completedDaysAgo', {
+    days: String(diffInDays),
+  })
 }

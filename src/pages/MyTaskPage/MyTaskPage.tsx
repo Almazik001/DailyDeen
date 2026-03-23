@@ -1,19 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ApiTask } from '../../api/types'
 import { getApiErrorMessage } from '../../api/apiClient'
+import type { LanguageMode } from '../../features/settings/settingsStorage'
+import { t } from '../../features/settings/translations'
 import TaskFormModal, {
   type TaskFormState,
 } from '../../features/task-form/TaskFormModal'
 import {
   deleteTaskById,
   getTasksByCategory,
+  updateTaskStatus,
   updateTaskFromForm,
 } from '../../features/tasks/taskData'
 import {
   formatDisplayDate,
+  getPriorityLabel,
   getPriorityVisual,
+  getStatusLabel,
   getStatusColor,
+  getTaskDescriptionText,
   priorityMeta,
+  statusMeta,
   toTaskFormState,
   toTaskImage,
 } from '../../features/tasks/taskUi'
@@ -52,19 +59,29 @@ function EditIcon() {
   )
 }
 
-const emptyTaskFormState: TaskFormState = {
-  title: '',
-  date: '',
-  priority: 'Moderate',
-  description: '',
-  imagePreview: '',
-  imageName: '',
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="m5.5 10.2 2.7 2.7 6.3-6.4"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
-const MyTaskPage = () => {
+type MyTaskPageProps = {
+  language: LanguageMode
+}
+
+const MyTaskPage = ({ language }: MyTaskPageProps) => {
   const [tasks, setTasks] = useState<ApiTask[]>([])
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
@@ -74,17 +91,29 @@ const MyTaskPage = () => {
         setTasks(nextTasks)
         setSelectedTaskId(nextTasks[0]?.id ?? null)
       } catch (error) {
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load tasks'))
+        setErrorMessage(getApiErrorMessage(error, t(language, 'task.loadError')))
       }
     }
 
     void loadTasks()
-  }, [])
+  }, [language])
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   )
+  const isSelectedTaskCompleted = selectedTask?.status.name === 'Completed'
+  const isCompletingSelectedTask =
+    selectedTask !== null && completingTaskId === selectedTask.id
+
+  const handleEditTask = (task: ApiTask) => {
+    if (import.meta.env.DEV) {
+      console.log('[MyTaskPage] edit task click', task)
+    }
+
+    setSelectedTaskId(task.id)
+    setIsEditModalOpen(true)
+  }
 
   const handleEditSubmit = async (formState: TaskFormState) => {
     if (!selectedTask) {
@@ -100,7 +129,28 @@ const MyTaskPage = () => {
 
       setIsEditModalOpen(false)
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to update task'))
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.updateError')))
+    }
+  }
+
+  const handleCompleteTask = async () => {
+    if (!selectedTask || isSelectedTaskCompleted) {
+      return
+    }
+
+    setCompletingTaskId(selectedTask.id)
+    setErrorMessage('')
+
+    try {
+      const updatedTask = await updateTaskStatus(selectedTask, 'Completed')
+
+      setTasks((current) =>
+        current.map((task) => (task.id === selectedTask.id ? updatedTask : task)),
+      )
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.completeError')))
+    } finally {
+      setCompletingTaskId(null)
     }
   }
 
@@ -123,7 +173,7 @@ const MyTaskPage = () => {
       setTasks(remainingTasks)
       setSelectedTaskId(nextTask?.id ?? null)
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to delete task'))
+      setErrorMessage(getApiErrorMessage(error, t(language, 'task.deleteError')))
     }
   }
 
@@ -131,8 +181,8 @@ const MyTaskPage = () => {
     return (
       <div className="my-task-layout">
         <section className="dashboard-panel my-task-panel my-task-list-panel">
-          <h2 className="section-title">My Tasks</h2>
-          <p>{errorMessage || 'No tasks yet in this category.'}</p>
+          <h2 className="section-title">{t(language, 'sidebar.my-task')}</h2>
+          <p>{errorMessage || t(language, 'task.noTasksCategory')}</p>
         </section>
       </div>
     )
@@ -141,7 +191,7 @@ const MyTaskPage = () => {
   return (
     <div className="my-task-layout">
       <section className="dashboard-panel my-task-panel my-task-list-panel">
-        <h2 className="section-title">My Tasks</h2>
+        <h2 className="section-title">{t(language, 'sidebar.my-task')}</h2>
 
         {errorMessage ? <p>{errorMessage}</p> : null}
 
@@ -152,7 +202,7 @@ const MyTaskPage = () => {
               className={`my-task-card${selectedTask.id === task.id ? ' is-active' : ''}`}
               type="button"
               onClick={() => {
-                setSelectedTaskId(task.id)
+                handleEditTask(task)
               }}
             >
               <OverflowIcon />
@@ -165,24 +215,28 @@ const MyTaskPage = () => {
                   />
                   <div>
                     <h3 className="my-task-card__title">{task.title}</h3>
-                    <p className="my-task-card__description">{task.description}</p>
+                    <p className="my-task-card__description">
+                      {getTaskDescriptionText(task.description, language)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="my-task-card__footer">
                   <span>
-                    Priority:{' '}
+                    {t(language, 'task.priority')}: {' '}
                     <strong style={{ color: getPriorityVisual(task.priority.name).textColor }}>
-                      {task.priority.name}
+                      {getPriorityLabel(task.priority.name, language)}
                     </strong>
                   </span>
                   <span>
-                    Status:{' '}
+                    {t(language, 'task.status')}: {' '}
                     <strong style={{ color: getStatusColor(task.status.name) }}>
-                      {task.status.name}
+                      {getStatusLabel(task.status.name, language)}
                     </strong>
                   </span>
-                  <span>Created on: {formatDisplayDate(task.createdAt)}</span>
+                  <span>
+                    {t(language, 'task.createdOn')}: {formatDisplayDate(task.createdAt, language)}
+                  </span>
                 </div>
               </div>
 
@@ -215,56 +269,84 @@ const MyTaskPage = () => {
           <div className="my-task-detail__summary">
             <h2>{selectedTask.title}</h2>
             <p>
-              Priority:{' '}
+              {t(language, 'task.priority')}: {' '}
               <strong style={{ color: getPriorityVisual(selectedTask.priority.name).textColor }}>
-                {selectedTask.priority.name}
+                {getPriorityLabel(selectedTask.priority.name, language)}
               </strong>
             </p>
             <p>
-              Status:{' '}
+              {t(language, 'task.status')}: {' '}
               <strong style={{ color: getStatusColor(selectedTask.status.name) }}>
-                {selectedTask.status.name}
+                {getStatusLabel(selectedTask.status.name, language)}
               </strong>
             </p>
-            <span>Created on: {formatDisplayDate(selectedTask.createdAt)}</span>
+            <span>
+              {t(language, 'task.createdOn')}: {formatDisplayDate(selectedTask.createdAt, language)}
+            </span>
           </div>
         </div>
 
         <div className="my-task-detail__body">
           <p>
-            <strong>Task Title:</strong> {selectedTask.title}.
+            <strong>{t(language, 'task.title')}:</strong> {selectedTask.title}.
           </p>
           <p>
-            <strong>Objective:</strong> {selectedTask.description}
+            <strong>{t(language, 'task.objective')}:</strong>{' '}
+            {getTaskDescriptionText(selectedTask.description, language)}
           </p>
           <div>
             <p>
-              <strong>Task Description:</strong>
+              <strong>{t(language, 'task.description')}:</strong>
             </p>
             <div className="my-task-detail__paragraphs">
-              <p>{selectedTask.description}</p>
+              <p>{getTaskDescriptionText(selectedTask.description, language)}</p>
             </div>
           </div>
           <div>
             <p>
-              <strong>Additional Notes:</strong>
+              <strong>{t(language, 'task.additionalNotes')}:</strong>
             </p>
             <ul className="my-task-detail__notes">
-              <li>Category: {selectedTask.category.name}</li>
-              <li>Priority: {selectedTask.priority.name}</li>
-              <li>Deadline: {formatDisplayDate(selectedTask.dueDate)}</li>
+              <li>{t(language, 'task.category')}: {selectedTask.category.name}</li>
+              <li>
+                {t(language, 'task.priority')}: {getPriorityLabel(selectedTask.priority.name, language)}
+              </li>
+              <li>
+                {t(language, 'task.deadline')}: {formatDisplayDate(selectedTask.dueDate, language)}
+              </li>
             </ul>
           </div>
           <p>
-            <strong>Deadline for Submission:</strong> {formatDisplayDate(selectedTask.dueDate)}
+            <strong>{t(language, 'task.deadlineSubmission')}:</strong>{' '}
+            {formatDisplayDate(selectedTask.dueDate, language)}
           </p>
         </div>
 
         <div className="my-task-detail__actions">
           <button
-            className="my-task-detail__action"
+            className={`my-task-detail__action my-task-detail__action--complete${
+              isSelectedTaskCompleted ? ' is-disabled' : ''
+            }`}
             type="button"
-            aria-label="Delete task"
+            disabled={isSelectedTaskCompleted || isCompletingSelectedTask}
+            onClick={() => {
+              void handleCompleteTask()
+            }}
+          >
+            <CheckIcon />
+            <span className="my-task-detail__action-label">
+              {isSelectedTaskCompleted
+                ? t(language, 'task.completed')
+                : isCompletingSelectedTask
+                  ? t(language, 'task.completing')
+                  : t(language, 'task.markCompleted')}
+            </span>
+          </button>
+          <button
+            className="my-task-detail__action my-task-detail__action--icon my-task-detail__action--danger"
+            type="button"
+            aria-label={t(language, 'task.deleteTask')}
+            disabled={isCompletingSelectedTask}
             onClick={() => {
               void handleDeleteTask()
             }}
@@ -272,11 +354,12 @@ const MyTaskPage = () => {
             <TrashIcon />
           </button>
           <button
-            className="my-task-detail__action"
+            className="my-task-detail__action my-task-detail__action--icon"
             type="button"
-            aria-label="Edit task"
+            aria-label={t(language, 'task.editTask')}
+            disabled={isCompletingSelectedTask}
             onClick={() => {
-              setIsEditModalOpen(true)
+              handleEditTask(selectedTask)
             }}
           >
             <EditIcon />
@@ -284,16 +367,20 @@ const MyTaskPage = () => {
         </div>
       </section>
 
-      <TaskFormModal
-        isOpen={isEditModalOpen}
-        mode="edit"
-        initialState={selectedTask ? toTaskFormState(selectedTask) : emptyTaskFormState}
-        priorityMeta={priorityMeta}
-        onClose={() => {
-          setIsEditModalOpen(false)
-        }}
-        onSubmit={handleEditSubmit}
-      />
+      {isEditModalOpen && selectedTask ? (
+        <TaskFormModal
+          isOpen={isEditModalOpen}
+          language={language}
+          mode="edit"
+          initialState={toTaskFormState(selectedTask)}
+          priorityMeta={priorityMeta}
+          statusMeta={statusMeta}
+          onClose={() => {
+            setIsEditModalOpen(false)
+          }}
+          onSubmit={handleEditSubmit}
+        />
+      ) : null}
     </div>
   )
 }

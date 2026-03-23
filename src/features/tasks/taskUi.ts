@@ -1,5 +1,12 @@
 import type { ApiTask } from '../../api/types'
-import type { PriorityKey, TaskFormState } from '../task-form/TaskFormModal'
+import { parseCalendarValue } from '../calendar/calendarUtils'
+import type { LanguageMode } from '../settings/settingsStorage'
+import { t } from '../settings/translations'
+import type {
+  PriorityKey,
+  StatusKey,
+  TaskFormState,
+} from '../task-form/TaskFormModal'
 
 export const priorityMeta: Record<
   PriorityKey,
@@ -25,10 +32,34 @@ export const priorityMeta: Record<
   },
 }
 
+export const statusMeta: Record<
+  StatusKey,
+  { textColor: string; dotColor: string }
+> = {
+  Completed: {
+    textColor: '#57AE35',
+    dotColor: '#57AE35',
+  },
+  'In Progress': {
+    textColor: '#4A5CFF',
+    dotColor: '#4A5CFF',
+  },
+  'Not Started': {
+    textColor: '#FF5B5B',
+    dotColor: '#FF5B5B',
+  },
+}
+
 const statusColorMap: Record<string, string> = {
   Completed: '#57AE35',
   'In Progress': '#4A5CFF',
   'Not Started': '#FF5B5B',
+}
+
+const localeMap: Record<LanguageMode, string> = {
+  english: 'en-GB',
+  russian: 'ru-RU',
+  kazakh: 'kk-KZ',
 }
 
 export function resolvePriorityKey(value: string): PriorityKey {
@@ -43,22 +74,76 @@ export function getPriorityVisual(priorityName: string) {
   return priorityMeta[resolvePriorityKey(priorityName)]
 }
 
+export function getPriorityLabel(priorityName: string, language: LanguageMode) {
+  const key = resolvePriorityKey(priorityName)
+
+  if (key === 'Extreme') {
+    return t(language, 'task.priority.extreme')
+  }
+
+  if (key === 'Low') {
+    return t(language, 'task.priority.low')
+  }
+
+  return t(language, 'task.priority.moderate')
+}
+
+export function resolveStatusKey(value: string): StatusKey {
+  if (value === 'Completed' || value === 'In Progress' || value === 'Not Started') {
+    return value
+  }
+
+  return 'Not Started'
+}
+
 export function getStatusColor(statusName: string) {
   return statusColorMap[statusName] ?? '#FF5B5B'
 }
 
-export function formatDisplayDate(value?: string | null) {
-  if (!value) {
-    return 'Not set'
+export function getStatusLabel(statusName: string, language: LanguageMode) {
+  const key = resolveStatusKey(statusName)
+
+  if (key === 'Completed') {
+    return t(language, 'task.status.completed')
   }
 
-  const date = new Date(value)
+  if (key === 'In Progress') {
+    return t(language, 'task.status.inProgress')
+  }
+
+  return t(language, 'task.status.notStarted')
+}
+
+const defaultTaskDescription = 'Task description will be added later.'
+
+export function getTaskDescriptionText(
+  description: string | null | undefined,
+  language: LanguageMode,
+) {
+  const normalized = description?.trim() ?? ''
+
+  if (!normalized || normalized === defaultTaskDescription) {
+    return t(language, 'task.descriptionPending')
+  }
+
+  return normalized
+}
+
+export function formatDisplayDate(
+  value?: string | null,
+  language: LanguageMode = 'english',
+) {
+  if (!value) {
+    return t(language, 'common.none')
+  }
+
+  const date = parseCalendarValue(value) ?? new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return 'Not set'
+    return t(language, 'common.none')
   }
 
-  return new Intl.DateTimeFormat('en-GB').format(date)
+  return new Intl.DateTimeFormat(localeMap[language]).format(date)
 }
 
 export function formatDateInput(value?: string | null) {
@@ -66,7 +151,7 @@ export function formatDateInput(value?: string | null) {
     return ''
   }
 
-  const date = new Date(value)
+  const date = parseCalendarValue(value) ?? new Date(value)
 
   if (Number.isNaN(date.getTime())) {
     return ''
@@ -88,6 +173,7 @@ export function toTaskFormState(task: ApiTask): TaskFormState {
     title: task.title,
     date: formatDateInput(task.dueDate),
     priority: resolvePriorityKey(task.priority.name),
+    status: resolveStatusKey(task.status.name),
     description: task.description,
     imagePreview: task.imageUrl ?? '',
     imageName: '',

@@ -19,9 +19,12 @@ import {
   updateStatus,
 } from '../../api/statuses.api'
 import type { LookupItem } from '../../api/types'
+import type { LanguageMode } from '../../features/settings/settingsStorage'
+import { t } from '../../features/settings/translations'
 import TaskCategoriesTable, {
   type LookupRow,
 } from '../../components/dashboard/TaskCategoriesTable/TaskCategoriesTable'
+import { getPriorityLabel, getStatusLabel } from '../../features/tasks/taskUi'
 import { clearTaskLookupsCache } from '../../features/tasks/taskLookups'
 import TaskStatusModal from '../../features/task-status/TaskStatusModal/TaskStatusModal'
 import styles from './TaskCategoriesPage.module.scss'
@@ -38,7 +41,11 @@ const emptyModalState: CategoryModalState = {
   item: null,
 }
 
-const TaskCategoriesPage = () => {
+type TaskCategoriesPageProps = {
+  language: LanguageMode
+}
+
+const TaskCategoriesPage = ({ language }: TaskCategoriesPageProps) => {
   const [modalState, setModalState] = useState<CategoryModalState>(emptyModalState)
   const [categories, setCategories] = useState<LookupItem[]>([])
   const [statuses, setStatuses] = useState<LookupItem[]>([])
@@ -55,12 +62,14 @@ const TaskCategoriesPage = () => {
         setStatuses(statusesResponse.statuses)
         setPriorities(prioritiesResponse.priorities)
       } catch (error) {
-        setErrorMessage(getApiErrorMessage(error, 'Unable to load lookup data'))
+        setErrorMessage(
+          getApiErrorMessage(error, t(language, 'taskCategories.loadError')),
+        )
       }
     }
 
     void loadLookups()
-  }, [])
+  }, [language])
 
   const modalConfig = useMemo(() => {
     if (!modalState.entity) {
@@ -69,26 +78,35 @@ const TaskCategoriesPage = () => {
 
     if (modalState.entity === 'category') {
       return {
-        title: modalState.mode === 'edit' ? 'Edit Category' : 'Add Category',
-        inputLabel: 'Category Name',
-        placeholder: 'Enter category name',
+        title:
+          modalState.mode === 'edit'
+            ? t(language, 'taskCategories.editCategory')
+            : t(language, 'taskCategories.createCategory'),
+        inputLabel: t(language, 'taskCategories.categoryName'),
+        placeholder: t(language, 'taskCategories.categoryPlaceholder'),
       }
     }
 
     if (modalState.entity === 'status') {
       return {
-        title: modalState.mode === 'edit' ? 'Edit Task Status' : 'Add Task Status',
-        inputLabel: 'Task Status Name',
-        placeholder: 'Enter task status',
+        title:
+          modalState.mode === 'edit'
+            ? t(language, 'taskCategories.editStatus')
+            : t(language, 'taskCategories.createStatus'),
+        inputLabel: t(language, 'taskCategories.statusName'),
+        placeholder: t(language, 'taskCategories.statusPlaceholder'),
       }
     }
 
     return {
-      title: modalState.mode === 'edit' ? 'Edit Task Priority' : 'Add Task Priority',
-      inputLabel: 'Task Priority Name',
-      placeholder: 'Enter task priority',
+      title:
+        modalState.mode === 'edit'
+          ? t(language, 'taskCategories.editPriority')
+          : t(language, 'taskCategories.createPriority'),
+      inputLabel: t(language, 'taskCategories.priorityName'),
+      placeholder: t(language, 'taskCategories.priorityPlaceholder'),
     }
-  }, [modalState.entity, modalState.mode])
+  }, [language, modalState.entity, modalState.mode])
 
   const openModal = (
     entity: LookupEntity,
@@ -144,7 +162,9 @@ const TaskCategoriesPage = () => {
       clearTaskLookupsCache()
       closeModal()
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to save lookup item'))
+      setErrorMessage(
+        getApiErrorMessage(error, t(language, 'taskCategories.saveError')),
+      )
     }
   }
 
@@ -167,14 +187,24 @@ const TaskCategoriesPage = () => {
 
       clearTaskLookupsCache()
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Unable to delete lookup item'))
+      setErrorMessage(
+        getApiErrorMessage(error, t(language, 'taskCategories.deleteError')),
+      )
     }
   }
 
-  const toRows = (items: LookupItem[]): LookupRow[] =>
+  const toRows = (
+    items: LookupItem[],
+    entity: LookupEntity,
+  ): LookupRow[] =>
     items.map((item) => ({
       id: item.id,
-      name: item.name,
+      name:
+        entity === 'status'
+          ? getStatusLabel(item.name, language)
+          : entity === 'priority'
+            ? getPriorityLabel(item.name, language)
+            : item.name,
     }))
 
   return (
@@ -182,7 +212,7 @@ const TaskCategoriesPage = () => {
       <section className={`dashboard-panel ${styles.panel}`}>
         <div className={styles.header}>
           <div>
-            <h2 className={styles.title}>Task Categories</h2>
+            <h2 className={styles.title}>{t(language, 'taskCategories.pageTitle')}</h2>
           </div>
           <button
             className={styles.backButton}
@@ -191,7 +221,7 @@ const TaskCategoriesPage = () => {
               window.location.hash = 'dashboard'
             }}
           >
-            Go Back
+            {t(language, 'common.goBack')}
           </button>
         </div>
 
@@ -199,10 +229,15 @@ const TaskCategoriesPage = () => {
 
         <div className={styles.tables}>
           <TaskCategoriesTable
-            addLabel="+ Add Category"
-            columnLabel="Task Category"
-            rows={toRows(categories)}
-            title="Task Categories"
+            actionLabel={t(language, 'common.actions')}
+            addLabel={t(language, 'taskCategories.addCategory')}
+            columnLabel={t(language, 'taskCategories.categoryColumn')}
+            deleteLabel={t(language, 'common.delete')}
+            editLabel={t(language, 'common.edit')}
+            emptyLabel={t(language, 'taskCategories.noItems')}
+            rows={toRows(categories, 'category')}
+            serialLabel={t(language, 'common.serial')}
+            title={t(language, 'taskCategories.categoryTitle')}
             onAdd={() => {
               openModal('category', 'create')
             }}
@@ -216,10 +251,15 @@ const TaskCategoriesPage = () => {
           />
 
           <TaskCategoriesTable
-            addLabel="+ Add Status"
-            columnLabel="Task Status"
-            rows={toRows(statuses)}
-            title="Task Status"
+            actionLabel={t(language, 'common.actions')}
+            addLabel={t(language, 'taskCategories.addStatus')}
+            columnLabel={t(language, 'taskCategories.statusColumn')}
+            deleteLabel={t(language, 'common.delete')}
+            editLabel={t(language, 'common.edit')}
+            emptyLabel={t(language, 'taskCategories.noItems')}
+            rows={toRows(statuses, 'status')}
+            serialLabel={t(language, 'common.serial')}
+            title={t(language, 'taskCategories.statusTitle')}
             onAdd={() => {
               openModal('status', 'create')
             }}
@@ -233,10 +273,15 @@ const TaskCategoriesPage = () => {
           />
 
           <TaskCategoriesTable
-            addLabel="+ Add Priority"
-            columnLabel="Task Priority"
-            rows={toRows(priorities)}
-            title="Task Priority"
+            actionLabel={t(language, 'common.actions')}
+            addLabel={t(language, 'taskCategories.addPriority')}
+            columnLabel={t(language, 'taskCategories.priorityColumn')}
+            deleteLabel={t(language, 'common.delete')}
+            editLabel={t(language, 'common.edit')}
+            emptyLabel={t(language, 'taskCategories.noItems')}
+            rows={toRows(priorities, 'priority')}
+            serialLabel={t(language, 'common.serial')}
+            title={t(language, 'taskCategories.priorityTitle')}
             onAdd={() => {
               openModal('priority', 'create')
             }}
@@ -252,12 +297,15 @@ const TaskCategoriesPage = () => {
       </section>
 
       <TaskStatusModal
-        isOpen={Boolean(modalState.entity && modalConfig)}
-        title={modalConfig?.title ?? 'Edit'}
-        inputLabel={modalConfig?.inputLabel ?? 'Name'}
-        placeholder={modalConfig?.placeholder ?? 'Enter value'}
-        mode={modalState.mode}
+        inputLabel={modalConfig?.inputLabel ?? t(language, 'taskCategories.categoryName')}
         initialValue={modalState.item?.name ?? ''}
+        isOpen={Boolean(modalState.entity && modalConfig)}
+        language={language}
+        mode={modalState.mode}
+        placeholder={
+          modalConfig?.placeholder ?? t(language, 'taskCategories.categoryPlaceholder')
+        }
+        title={modalConfig?.title ?? t(language, 'common.edit')}
         onClose={closeModal}
         onSubmit={(value) => {
           void handleSubmit(value)
