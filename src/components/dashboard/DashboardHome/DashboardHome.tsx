@@ -1,9 +1,12 @@
-import { useState } from 'react'
-import type { StoredUser } from '../../../features/auth/authStorage'
+import { useEffect, useState } from 'react'
+import type { ApiTask } from '../../../api/types'
+import {
+  loadDashboardData,
+  type DashboardStatusItem,
+} from '../../../features/tasks/dashboardData'
 import type { LanguageMode } from '../../../features/settings/settingsStorage'
 import { t } from '../../../features/settings/translations'
 import InviteMembersModal from '../../../features/invite-members/InviteMembersModal'
-import CompletedTasks from '../CompletedTasks/CompletedTasks'
 import TaskStatus from '../TaskStatus/TaskStatus'
 import TodoSection from '../TodoSection/TodoSection'
 import './DashboardHome.module.scss'
@@ -42,7 +45,6 @@ const teamMembers: TeamMember[] = [
 ]
 
 type DashboardHomeProps = {
-  currentUser: StoredUser | null
   language: LanguageMode
 }
 
@@ -66,39 +68,40 @@ function InviteIcon() {
   )
 }
 
-function WaveIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="welcome-bar__wave"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12.8 3.7c-.4 0-.8.3-.8.8v6" />
-      <path d="M15.6 5.5c-.4 0-.8.3-.8.8v4.4" />
-      <path d="M18.4 7.6c-.4 0-.8.3-.8.8v3.1" />
-      <path d="M10 2.8c-.4 0-.8.3-.8.8v7.1l-1.7-1.5a1.5 1.5 0 0 0-2.1.1c-.5.6-.5 1.5.1 2.1l4.8 5.3a3.8 3.8 0 0 0 2.8 1.2h2.2c2.4 0 4.4-2 4.4-4.4v-3.3" />
-    </svg>
-  )
-}
-
-const DashboardHome = ({ currentUser, language }: DashboardHomeProps) => {
+const DashboardHome = ({ language }: DashboardHomeProps) => {
   const [isInviteOpen, setIsInviteOpen] = useState(false)
-  const welcomeName =
-    currentUser?.firstName?.trim() || currentUser?.username || 'guest'
+  const [statusItems, setStatusItems] = useState<DashboardStatusItem[]>([
+    { label: 'Completed', count: 0, value: 0, color: '#57AE35' },
+    { label: 'In Progress', count: 0, value: 0, color: '#4A47F5' },
+    { label: 'Not Started', count: 0, value: 0, color: '#E04B3F' },
+  ])
+  const [totalTasks, setTotalTasks] = useState(0)
+  const [completedTasks, setCompletedTasks] = useState<ApiTask[]>([])
+
+  useEffect(() => {
+    const syncDashboardData = async () => {
+      try {
+        const data = await loadDashboardData()
+        setStatusItems(data.statusSummary)
+        setTotalTasks(data.totalTasks)
+        setCompletedTasks(data.completedTasks)
+      } catch {
+        setStatusItems([
+          { label: 'Completed', count: 0, value: 0, color: '#57AE35' },
+          { label: 'In Progress', count: 0, value: 0, color: '#4A47F5' },
+          { label: 'Not Started', count: 0, value: 0, color: '#E04B3F' },
+        ])
+        setTotalTasks(0)
+        setCompletedTasks([])
+      }
+    }
+
+    void syncDashboardData()
+  }, [])
 
   return (
     <>
-      <div className="welcome-bar">
-        <h1 className="welcome-bar__title">
-          {t(language, 'dashboard.welcome', { name: welcomeName })}
-          <WaveIcon />
-        </h1>
-
+      <div className="dashboard-topbar">
         <div className="team-strip">
           <div className="team-strip__avatars" aria-hidden="true">
             {teamMembers.map((member) => (
@@ -127,11 +130,7 @@ const DashboardHome = ({ currentUser, language }: DashboardHomeProps) => {
 
       <div className="dashboard-main">
         <TodoSection />
-
-        <div className="dashboard-sidebar">
-          <TaskStatus />
-          <CompletedTasks />
-        </div>
+        <TaskStatus completedTasks={completedTasks} items={statusItems} totalTasks={totalTasks} />
       </div>
 
       {isInviteOpen ? (

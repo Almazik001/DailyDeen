@@ -1,99 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ApiTask } from '../../api/types'
+import { getApiErrorMessage } from '../../api/apiClient'
 import TaskFormModal, {
-  type PriorityKey,
   type TaskFormState,
 } from '../../features/task-form/TaskFormModal'
-
-type VitalTask = {
-  id: string
-  title: string
-  shortDescription: string
-  priority: string
-  priorityColor: string
-  status: string
-  statusColor: string
-  createdAt: string
-  thumbnail: string
-  detailSummary: string
-  detailParagraphs: string[]
-  tips: string[]
-}
-
-const priorityMeta: Record<
-  PriorityKey,
-  { textColor: string; dotColor: string; thumbnail: string }
-> = {
-  Extreme: {
-    textColor: '#FF6B61',
-    dotColor: '#FF5B5B',
-    thumbnail:
-      'linear-gradient(145deg, #3a2d34 0%, #1b1d2d 52%, #b8724d 100%)',
-  },
-  Moderate: {
-    textColor: '#7CB3FF',
-    dotColor: '#7CB3FF',
-    thumbnail:
-      'linear-gradient(145deg, #20243a 0%, #101522 46%, #5873a5 100%)',
-  },
-  Low: {
-    textColor: '#68B84B',
-    dotColor: '#68B84B',
-    thumbnail:
-      'linear-gradient(145deg, #62543f 0%, #94805d 42%, #6f8d49 100%)',
-  },
-}
-
-const initialVitalTasks: VitalTask[] = [
-  {
-    id: 'walk-the-dog',
-    title: 'Walk the dog',
-    shortDescription: 'Take the dog to the park and bring treats as well.....',
-    priority: 'Extreme',
-    priorityColor: '#FF6B61',
-    status: 'Not Started',
-    statusColor: '#FF5B5B',
-    createdAt: '20/06/2023',
-    thumbnail:
-      'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)), radial-gradient(circle at 60% 28%, #fff0cb 0 12%, transparent 13%), linear-gradient(135deg, #7e532e 0%, #c89358 42%, #687c48 100%)',
-    detailSummary: 'Take the dog to the park and bring treats as well.',
-    detailParagraphs: [
-      'Take Luffy and Jiro for a leisurely stroll around the neighborhood.',
-      'Enjoy the fresh air and give them the exercise and mental stimulation they need for a happy and healthy day.',
-      "Don't forget to bring along squeaky and fluffy for some extra fun along the way!",
-    ],
-    tips: [
-      'Listen to a podcast or audiobook',
-      'Practice mindfulness or meditation',
-      'Take photos of interesting sights along the way',
-      'Practice obedience training with your dog',
-      'Chat with neighbors or other dog walkers',
-      'Listen to music or an upbeat playlist',
-    ],
-  },
-  {
-    id: 'hospital',
-    title: 'Take grandma to hospital',
-    shortDescription: 'Go back home and take grandma to the hospital for a checkup....',
-    priority: 'Moderate',
-    priorityColor: '#7CB3FF',
-    status: 'In Progress',
-    statusColor: '#4A5CFF',
-    createdAt: '20/06/2023',
-    thumbnail:
-      'linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02)), radial-gradient(circle at 56% 24%, #f2fbff 0 11%, transparent 12%), linear-gradient(135deg, #f1f4f8 0%, #d2dde9 40%, #89a0b7 100%)',
-    detailSummary: 'Accompany grandma to the hospital and make sure all check-in steps are completed.',
-    detailParagraphs: [
-      'Prepare her documents before leaving the house.',
-      'Confirm the appointment slot and transport route in advance.',
-      'Stay with her during registration and note down any doctor instructions.',
-    ],
-    tips: [
-      'Carry water and snacks',
-      'Keep emergency contact numbers available',
-      'Double-check prescriptions before returning home',
-    ],
-  },
-]
+import {
+  deleteTaskById,
+  getTasksByCategory,
+  updateTaskFromForm,
+} from '../../features/tasks/taskData'
+import {
+  formatDisplayDate,
+  getPriorityVisual,
+  getStatusColor,
+  priorityMeta,
+  toTaskFormState,
+  toTaskImage,
+} from '../../features/tasks/taskUi'
 
 function OverflowIcon() {
   return (
@@ -129,86 +52,98 @@ function EditIcon() {
   )
 }
 
-function parseDisplayDate(value: string) {
-  const [day, month, year] = value.split('/')
-
-  if (!day || !month || !year) {
-    return '2023-06-20'
-  }
-
-  return `${year}-${month}-${day}`
-}
-
-function formatDate(value: string) {
-  const date = value ? new Date(`${value}T00:00:00`) : new Date()
-  return new Intl.DateTimeFormat('en-GB').format(date)
-}
-
-function getFormStateFromTask(task: VitalTask): TaskFormState {
-  return {
-    title: task.title,
-    date: parseDisplayDate(task.createdAt),
-    priority: task.priority as PriorityKey,
-    description: [task.detailSummary, ...task.detailParagraphs].join(' '),
-    imagePreview: task.thumbnail.startsWith('data:') ? task.thumbnail : '',
-    imageName: '',
-  }
+const emptyTaskFormState: TaskFormState = {
+  title: '',
+  date: '',
+  priority: 'Moderate',
+  description: '',
+  imagePreview: '',
+  imageName: '',
 }
 
 const VitalTaskPage = () => {
-  const [tasks, setTasks] = useState<VitalTask[]>(initialVitalTasks)
-  const [selectedTaskId, setSelectedTaskId] = useState(initialVitalTasks[0].id)
+  const [tasks, setTasks] = useState<ApiTask[]>([])
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const selectedTask =
-    tasks.find((task) => task.id === selectedTaskId) ?? tasks[0]
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleEditSubmit = (formState: TaskFormState) => {
-    setTasks((current) =>
-      current.map((task) => {
-        if (task.id !== selectedTaskId) {
-          return task
-        }
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const nextTasks = await getTasksByCategory('Vital Tasks')
+        setTasks(nextTasks)
+        setSelectedTaskId(nextTasks[0]?.id ?? null)
+      } catch (error) {
+        setErrorMessage(getApiErrorMessage(error, 'Unable to load tasks'))
+      }
+    }
 
-        const description =
-          formState.description.trim() || 'Task description will be added later.'
+    void loadTasks()
+  }, [])
 
-        return {
-          ...task,
-          title: formState.title.trim(),
-          shortDescription: description,
-          priority: formState.priority,
-          priorityColor: priorityMeta[formState.priority].textColor,
-          createdAt: formatDate(formState.date),
-          thumbnail: formState.imagePreview || task.thumbnail,
-          detailSummary: description,
-          detailParagraphs: [description],
-        }
-      }),
-    )
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === selectedTaskId) ?? null,
+    [selectedTaskId, tasks],
+  )
 
-    setIsEditModalOpen(false)
-  }
-
-  const handleDeleteTask = () => {
-    if (tasks.length <= 1) {
+  const handleEditSubmit = async (formState: TaskFormState) => {
+    if (!selectedTask) {
       return
     }
 
-    const currentIndex = tasks.findIndex((task) => task.id === selectedTaskId)
-    const nextTask =
-      tasks[currentIndex + 1] ?? tasks[currentIndex - 1] ?? tasks[0]
+    try {
+      const updatedTask = await updateTaskFromForm(selectedTask, formState)
 
-    setTasks((current) => current.filter((task) => task.id !== selectedTaskId))
+      setTasks((current) =>
+        current.map((task) => (task.id === selectedTask.id ? updatedTask : task)),
+      )
 
-    if (nextTask) {
-      setSelectedTaskId(nextTask.id)
+      setIsEditModalOpen(false)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to update task'))
     }
+  }
+
+  const handleDeleteTask = async () => {
+    if (!selectedTask) {
+      return
+    }
+
+    const currentIndex = tasks.findIndex((task) => task.id === selectedTask.id)
+
+    try {
+      await deleteTaskById(selectedTask.id)
+      const remainingTasks = tasks.filter((task) => task.id !== selectedTask.id)
+      const nextTask =
+        remainingTasks[currentIndex] ??
+        remainingTasks[currentIndex - 1] ??
+        remainingTasks[0] ??
+        null
+
+      setTasks(remainingTasks)
+      setSelectedTaskId(nextTask?.id ?? null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to delete task'))
+    }
+  }
+
+  if (!selectedTask) {
+    return (
+      <div className="my-task-layout">
+        <section className="dashboard-panel my-task-panel my-task-list-panel">
+          <h2 className="section-title">Vital Tasks</h2>
+          <p>{errorMessage || 'No tasks yet in this category.'}</p>
+        </section>
+      </div>
+    )
   }
 
   return (
     <div className="my-task-layout">
       <section className="dashboard-panel my-task-panel my-task-list-panel">
         <h2 className="section-title">Vital Tasks</h2>
+
+        {errorMessage ? <p>{errorMessage}</p> : null}
 
         <div className="my-task-list">
           {tasks.map((task) => (
@@ -226,30 +161,39 @@ const VitalTaskPage = () => {
                   <span
                     className="task-card__indicator"
                     aria-hidden="true"
-                    style={{ borderColor: task.statusColor }}
+                    style={{ borderColor: getStatusColor(task.status.name) }}
                   />
                   <div>
                     <h3 className="my-task-card__title">{task.title}</h3>
-                    <p className="my-task-card__description">{task.shortDescription}</p>
+                    <p className="my-task-card__description">{task.description}</p>
                   </div>
                 </div>
 
                 <div className="my-task-card__footer">
                   <span>
                     Priority:{' '}
-                    <strong style={{ color: task.priorityColor }}>{task.priority}</strong>
+                    <strong style={{ color: getPriorityVisual(task.priority.name).textColor }}>
+                      {task.priority.name}
+                    </strong>
                   </span>
                   <span>
-                    Status: <strong style={{ color: task.statusColor }}>{task.status}</strong>
+                    Status:{' '}
+                    <strong style={{ color: getStatusColor(task.status.name) }}>
+                      {task.status.name}
+                    </strong>
                   </span>
-                  <span>Created on: {task.createdAt}</span>
+                  <span>Created on: {formatDisplayDate(task.createdAt)}</span>
                 </div>
               </div>
 
               <div
                 className="my-task-card__thumb"
                 aria-hidden="true"
-                style={{ background: task.thumbnail }}
+                style={{
+                  background: task.imageUrl
+                    ? `center / cover no-repeat url(${task.imageUrl})`
+                    : toTaskImage(task),
+                }}
               />
             </button>
           ))}
@@ -261,32 +205,40 @@ const VitalTaskPage = () => {
           <div
             className="my-task-detail__image"
             aria-hidden="true"
-            style={{ background: selectedTask.thumbnail }}
+            style={{
+              background: selectedTask.imageUrl
+                ? `center / cover no-repeat url(${selectedTask.imageUrl})`
+                : toTaskImage(selectedTask),
+            }}
           />
 
           <div className="my-task-detail__summary">
             <h2>{selectedTask.title}</h2>
             <p>
-              Priority: <strong style={{ color: selectedTask.priorityColor }}>{selectedTask.priority}</strong>
+              Priority:{' '}
+              <strong style={{ color: getPriorityVisual(selectedTask.priority.name).textColor }}>
+                {selectedTask.priority.name}
+              </strong>
             </p>
             <p>
-              Status: <strong style={{ color: selectedTask.statusColor }}>{selectedTask.status}</strong>
+              Status:{' '}
+              <strong style={{ color: getStatusColor(selectedTask.status.name) }}>
+                {selectedTask.status.name}
+              </strong>
             </p>
-            <span>Created on: {selectedTask.createdAt}</span>
+            <span>Created on: {formatDisplayDate(selectedTask.createdAt)}</span>
           </div>
         </div>
 
         <div className="my-task-detail__body">
-          <p>{selectedTask.detailSummary}</p>
+          <p>{selectedTask.description}</p>
           <div className="my-task-detail__paragraphs">
-            {selectedTask.detailParagraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            <p>{selectedTask.description}</p>
           </div>
           <ol className="my-task-detail__tips">
-            {selectedTask.tips.map((tip) => (
-              <li key={tip}>{tip}</li>
-            ))}
+            <li>Category: {selectedTask.category.name}</li>
+            <li>Priority: {selectedTask.priority.name}</li>
+            <li>Deadline: {formatDisplayDate(selectedTask.dueDate)}</li>
           </ol>
         </div>
 
@@ -295,7 +247,9 @@ const VitalTaskPage = () => {
             className="my-task-detail__action"
             type="button"
             aria-label="Delete task"
-            onClick={handleDeleteTask}
+            onClick={() => {
+              void handleDeleteTask()
+            }}
           >
             <TrashIcon />
           </button>
@@ -315,7 +269,7 @@ const VitalTaskPage = () => {
       <TaskFormModal
         isOpen={isEditModalOpen}
         mode="edit"
-        initialState={getFormStateFromTask(selectedTask)}
+        initialState={selectedTask ? toTaskFormState(selectedTask) : emptyTaskFormState}
         priorityMeta={priorityMeta}
         onClose={() => {
           setIsEditModalOpen(false)

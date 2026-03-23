@@ -1,106 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ApiTask } from '../../api/types'
+import { getApiErrorMessage } from '../../api/apiClient'
 import TaskFormModal, {
-  type PriorityKey,
   type TaskFormState,
 } from '../../features/task-form/TaskFormModal'
-
-type MyTaskItem = {
-  id: string
-  title: string
-  shortDescription: string
-  priority: string
-  priorityColor: string
-  status: string
-  statusColor: string
-  createdAt: string
-  thumbnail: string
-  taskTitle: string
-  objective: string
-  taskDescription: string[]
-  additionalNotes: string[]
-  deadline: string
-}
-
-const priorityMeta: Record<
-  PriorityKey,
-  { textColor: string; dotColor: string; thumbnail: string }
-> = {
-  Extreme: {
-    textColor: '#FF6B61',
-    dotColor: '#FF5B5B',
-    thumbnail:
-      'linear-gradient(145deg, #3a2d34 0%, #1b1d2d 52%, #b8724d 100%)',
-  },
-  Moderate: {
-    textColor: '#7CB3FF',
-    dotColor: '#7CB3FF',
-    thumbnail:
-      'linear-gradient(145deg, #20243a 0%, #101522 46%, #5873a5 100%)',
-  },
-  Low: {
-    textColor: '#68B84B',
-    dotColor: '#68B84B',
-    thumbnail:
-      'linear-gradient(145deg, #62543f 0%, #94805d 42%, #6f8d49 100%)',
-  },
-}
-
-const initialMyTasks: MyTaskItem[] = [
-  {
-    id: 'submit-documents',
-    title: 'Submit Documents',
-    shortDescription: 'Make sure to submit all the necessary documents on time.',
-    priority: 'Extreme',
-    priorityColor: '#FF6B61',
-    status: 'Not Started',
-    statusColor: '#FF5B5B',
-    createdAt: '20/06/2023',
-    thumbnail:
-      'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)), radial-gradient(circle at 62% 28%, #dceac9 0 11%, transparent 12%), linear-gradient(135deg, #a7b18e 0%, #e8eef5 48%, #c3d3e4 100%)',
-    taskTitle: 'Document Submission.',
-    objective:
-      'To submit required documents for something important.',
-    taskDescription: [
-      'Review the list of documents required for submission and ensure all necessary documents are ready.',
-      'Organize the documents accordingly and scan them if physical copies need to be submitted digitally.',
-      'Rename the scanned files appropriately for easy identification and verify the accepted file formats.',
-      'Upload the documents securely to the designated platform, double-check for accuracy, and obtain confirmation of successful submission.',
-      'Follow up if necessary to ensure proper processing.',
-    ],
-    additionalNotes: [
-      'Ensure that the documents are authentic and up-to-date.',
-      'Maintain confidentiality and security of sensitive information during the submission process.',
-      'If there are specific guidelines or deadlines for submission, adhere to them diligently.',
-    ],
-    deadline: 'End of Day',
-  },
-  {
-    id: 'complete-assignments',
-    title: 'Complete assignments',
-    shortDescription: 'The assignments must be completed to pass final year exams.',
-    priority: 'Moderate',
-    priorityColor: '#7CB3FF',
-    status: 'In Progress',
-    statusColor: '#4A5CFF',
-    createdAt: '20/06/2023',
-    thumbnail:
-      'linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03)), radial-gradient(circle at 50% 26%, #eff7ff 0 12%, transparent 13%), linear-gradient(135deg, #dfe7e6 0%, #f8fbff 44%, #8a9a9b 100%)',
-    taskTitle: 'Assignment Completion.',
-    objective:
-      'To finish pending assignments before the submission window closes.',
-    taskDescription: [
-      'List all remaining assignments and estimate the time required for each one.',
-      'Focus on high-priority work first and break the rest into smaller checkpoints.',
-      'Review feedback from previous submissions to avoid repeating the same mistakes.',
-      'Submit each assignment and keep proof of successful upload.',
-    ],
-    additionalNotes: [
-      'Check plagiarism and formatting requirements before final submission.',
-      'Ask for clarification early if any task instructions are unclear.',
-    ],
-    deadline: 'Before final year review',
-  },
-]
+import {
+  deleteTaskById,
+  getTasksByCategory,
+  updateTaskFromForm,
+} from '../../features/tasks/taskData'
+import {
+  formatDisplayDate,
+  getPriorityVisual,
+  getStatusColor,
+  priorityMeta,
+  toTaskFormState,
+  toTaskImage,
+} from '../../features/tasks/taskUi'
 
 function OverflowIcon() {
   return (
@@ -136,87 +52,98 @@ function EditIcon() {
   )
 }
 
-function parseDisplayDate(value: string) {
-  const [day, month, year] = value.split('/')
-
-  if (!day || !month || !year) {
-    return '2023-06-20'
-  }
-
-  return `${year}-${month}-${day}`
-}
-
-function formatDate(value: string) {
-  const date = value ? new Date(`${value}T00:00:00`) : new Date()
-  return new Intl.DateTimeFormat('en-GB').format(date)
-}
-
-function getFormStateFromTask(task: MyTaskItem): TaskFormState {
-  return {
-    title: task.title,
-    date: parseDisplayDate(task.createdAt),
-    priority: task.priority as PriorityKey,
-    description: task.taskDescription.join(' '),
-    imagePreview: task.thumbnail.startsWith('data:') ? task.thumbnail : '',
-    imageName: '',
-  }
+const emptyTaskFormState: TaskFormState = {
+  title: '',
+  date: '',
+  priority: 'Moderate',
+  description: '',
+  imagePreview: '',
+  imageName: '',
 }
 
 const MyTaskPage = () => {
-  const [tasks, setTasks] = useState<MyTaskItem[]>(initialMyTasks)
-  const [selectedTaskId, setSelectedTaskId] = useState(initialMyTasks[0].id)
+  const [tasks, setTasks] = useState<ApiTask[]>([])
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const selectedTask =
-    tasks.find((task) => task.id === selectedTaskId) ?? tasks[0]
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleEditSubmit = (formState: TaskFormState) => {
-    setTasks((current) =>
-      current.map((task) => {
-        if (task.id !== selectedTaskId) {
-          return task
-        }
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const nextTasks = await getTasksByCategory('My Tasks')
+        setTasks(nextTasks)
+        setSelectedTaskId(nextTasks[0]?.id ?? null)
+      } catch (error) {
+        setErrorMessage(getApiErrorMessage(error, 'Unable to load tasks'))
+      }
+    }
 
-        const description =
-          formState.description.trim() || 'Task description will be added later.'
+    void loadTasks()
+  }, [])
 
-        return {
-          ...task,
-          title: formState.title.trim(),
-          shortDescription: description,
-          priority: formState.priority,
-          priorityColor: priorityMeta[formState.priority].textColor,
-          createdAt: formatDate(formState.date),
-          thumbnail: formState.imagePreview || task.thumbnail,
-          taskTitle: `${formState.title.trim()}.`,
-          objective: description,
-          taskDescription: [description],
-        }
-      }),
-    )
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === selectedTaskId) ?? null,
+    [selectedTaskId, tasks],
+  )
 
-    setIsEditModalOpen(false)
-  }
-
-  const handleDeleteTask = () => {
-    if (tasks.length <= 1) {
+  const handleEditSubmit = async (formState: TaskFormState) => {
+    if (!selectedTask) {
       return
     }
 
-    const currentIndex = tasks.findIndex((task) => task.id === selectedTaskId)
-    const nextTask =
-      tasks[currentIndex + 1] ?? tasks[currentIndex - 1] ?? tasks[0]
+    try {
+      const updatedTask = await updateTaskFromForm(selectedTask, formState)
 
-    setTasks((current) => current.filter((task) => task.id !== selectedTaskId))
+      setTasks((current) =>
+        current.map((task) => (task.id === selectedTask.id ? updatedTask : task)),
+      )
 
-    if (nextTask) {
-      setSelectedTaskId(nextTask.id)
+      setIsEditModalOpen(false)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to update task'))
     }
+  }
+
+  const handleDeleteTask = async () => {
+    if (!selectedTask) {
+      return
+    }
+
+    const currentIndex = tasks.findIndex((task) => task.id === selectedTask.id)
+
+    try {
+      await deleteTaskById(selectedTask.id)
+      const remainingTasks = tasks.filter((task) => task.id !== selectedTask.id)
+      const nextTask =
+        remainingTasks[currentIndex] ??
+        remainingTasks[currentIndex - 1] ??
+        remainingTasks[0] ??
+        null
+
+      setTasks(remainingTasks)
+      setSelectedTaskId(nextTask?.id ?? null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to delete task'))
+    }
+  }
+
+  if (!selectedTask) {
+    return (
+      <div className="my-task-layout">
+        <section className="dashboard-panel my-task-panel my-task-list-panel">
+          <h2 className="section-title">My Tasks</h2>
+          <p>{errorMessage || 'No tasks yet in this category.'}</p>
+        </section>
+      </div>
+    )
   }
 
   return (
     <div className="my-task-layout">
       <section className="dashboard-panel my-task-panel my-task-list-panel">
         <h2 className="section-title">My Tasks</h2>
+
+        {errorMessage ? <p>{errorMessage}</p> : null}
 
         <div className="my-task-list">
           {tasks.map((task) => (
@@ -234,30 +161,39 @@ const MyTaskPage = () => {
                   <span
                     className="task-card__indicator"
                     aria-hidden="true"
-                    style={{ borderColor: task.statusColor }}
+                    style={{ borderColor: getStatusColor(task.status.name) }}
                   />
                   <div>
                     <h3 className="my-task-card__title">{task.title}</h3>
-                    <p className="my-task-card__description">{task.shortDescription}</p>
+                    <p className="my-task-card__description">{task.description}</p>
                   </div>
                 </div>
 
                 <div className="my-task-card__footer">
                   <span>
                     Priority:{' '}
-                    <strong style={{ color: task.priorityColor }}>{task.priority}</strong>
+                    <strong style={{ color: getPriorityVisual(task.priority.name).textColor }}>
+                      {task.priority.name}
+                    </strong>
                   </span>
                   <span>
-                    Status: <strong style={{ color: task.statusColor }}>{task.status}</strong>
+                    Status:{' '}
+                    <strong style={{ color: getStatusColor(task.status.name) }}>
+                      {task.status.name}
+                    </strong>
                   </span>
-                  <span>Created on: {task.createdAt}</span>
+                  <span>Created on: {formatDisplayDate(task.createdAt)}</span>
                 </div>
               </div>
 
               <div
                 className="my-task-card__thumb"
                 aria-hidden="true"
-                style={{ background: task.thumbnail }}
+                style={{
+                  background: task.imageUrl
+                    ? `center / cover no-repeat url(${task.imageUrl})`
+                    : toTaskImage(task),
+                }}
               />
             </button>
           ))}
@@ -269,36 +205,44 @@ const MyTaskPage = () => {
           <div
             className="my-task-detail__image"
             aria-hidden="true"
-            style={{ background: selectedTask.thumbnail }}
+            style={{
+              background: selectedTask.imageUrl
+                ? `center / cover no-repeat url(${selectedTask.imageUrl})`
+                : toTaskImage(selectedTask),
+            }}
           />
 
           <div className="my-task-detail__summary">
             <h2>{selectedTask.title}</h2>
             <p>
-              Priority: <strong style={{ color: selectedTask.priorityColor }}>{selectedTask.priority}</strong>
+              Priority:{' '}
+              <strong style={{ color: getPriorityVisual(selectedTask.priority.name).textColor }}>
+                {selectedTask.priority.name}
+              </strong>
             </p>
             <p>
-              Status: <strong style={{ color: selectedTask.statusColor }}>{selectedTask.status}</strong>
+              Status:{' '}
+              <strong style={{ color: getStatusColor(selectedTask.status.name) }}>
+                {selectedTask.status.name}
+              </strong>
             </p>
-            <span>Created on: {selectedTask.createdAt}</span>
+            <span>Created on: {formatDisplayDate(selectedTask.createdAt)}</span>
           </div>
         </div>
 
         <div className="my-task-detail__body">
           <p>
-            <strong>Task Title:</strong> {selectedTask.taskTitle}
+            <strong>Task Title:</strong> {selectedTask.title}.
           </p>
           <p>
-            <strong>Objective:</strong> {selectedTask.objective}
+            <strong>Objective:</strong> {selectedTask.description}
           </p>
           <div>
             <p>
               <strong>Task Description:</strong>
             </p>
             <div className="my-task-detail__paragraphs">
-              {selectedTask.taskDescription.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
+              <p>{selectedTask.description}</p>
             </div>
           </div>
           <div>
@@ -306,13 +250,13 @@ const MyTaskPage = () => {
               <strong>Additional Notes:</strong>
             </p>
             <ul className="my-task-detail__notes">
-              {selectedTask.additionalNotes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
+              <li>Category: {selectedTask.category.name}</li>
+              <li>Priority: {selectedTask.priority.name}</li>
+              <li>Deadline: {formatDisplayDate(selectedTask.dueDate)}</li>
             </ul>
           </div>
           <p>
-            <strong>Deadline for Submission:</strong> {selectedTask.deadline}
+            <strong>Deadline for Submission:</strong> {formatDisplayDate(selectedTask.dueDate)}
           </p>
         </div>
 
@@ -321,7 +265,9 @@ const MyTaskPage = () => {
             className="my-task-detail__action"
             type="button"
             aria-label="Delete task"
-            onClick={handleDeleteTask}
+            onClick={() => {
+              void handleDeleteTask()
+            }}
           >
             <TrashIcon />
           </button>
@@ -341,7 +287,7 @@ const MyTaskPage = () => {
       <TaskFormModal
         isOpen={isEditModalOpen}
         mode="edit"
-        initialState={getFormStateFromTask(selectedTask)}
+        initialState={selectedTask ? toTaskFormState(selectedTask) : emptyTaskFormState}
         priorityMeta={priorityMeta}
         onClose={() => {
           setIsEditModalOpen(false)

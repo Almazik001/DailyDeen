@@ -128,12 +128,12 @@ const SettingsPage = ({
     reader.readAsDataURL(file)
   }
 
-  const handleAccountSave = () => {
+  const handleAccountSave = async () => {
     if (!currentUser) {
       return
     }
 
-    const updatedUser = updateStoredUserProfile({
+    const updatedUser = await updateStoredUserProfile({
       firstName: accountForm.firstName.trim(),
       lastName: accountForm.lastName.trim(),
       email: accountForm.email.trim(),

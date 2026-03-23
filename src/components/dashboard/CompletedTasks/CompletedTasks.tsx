@@ -1,28 +1,11 @@
+import type { ApiTask } from '../../../api/types'
+import { getCompletedAgoLabel } from '../../../features/tasks/dashboardData'
+import { toTaskImage } from '../../../features/tasks/taskUi'
 import './CompletedTasks.module.scss'
 
-type CompletedTask = {
-  title: string
-  description: string
-  completedAgo: string
-  thumbnail: string
+type CompletedTasksProps = {
+  tasks: ApiTask[]
 }
-
-const completedTasks: CompletedTask[] = [
-  {
-    title: 'Walk the dog',
-    description: 'Take the dog to the park and bring treats as well.',
-    completedAgo: 'Completed 2 days ago.',
-    thumbnail:
-      'linear-gradient(155deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.02)), radial-gradient(circle at 70% 36%, #fff0cb 0 15%, transparent 16%), linear-gradient(135deg, #7a4a25 0%, #b77b42 38%, #6b8a4e 100%)',
-  },
-  {
-    title: 'Conduct meeting',
-    description: 'Meet with the client and finalize requirements.',
-    completedAgo: 'Completed 2 days ago.',
-    thumbnail:
-      'linear-gradient(155deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.02)), radial-gradient(circle at 68% 22%, #fff4d7 0 15%, transparent 16%), linear-gradient(135deg, #6f5339 0%, #d0ad7d 45%, #384252 100%)',
-  },
-]
 
 function CompletedPanelIcon() {
   return (
@@ -58,7 +41,7 @@ function OverflowIcon() {
   )
 }
 
-const CompletedTasks = () => {
+const CompletedTasks = ({ tasks }: CompletedTasksProps) => {
   return (
     <section className="dashboard-panel completed-panel">
       <div className="panel-head">
@@ -69,8 +52,8 @@ const CompletedTasks = () => {
       </div>
 
       <div className="completed-list">
-        {completedTasks.map((task) => (
-          <article className="task-card task-card--compact" key={task.title}>
+        {tasks.map((task) => (
+          <article className="task-card task-card--compact" key={task.id}>
             <OverflowIcon />
             <div className="task-card__content">
               <div className="task-card__title-row">
@@ -88,13 +71,17 @@ const CompletedTasks = () => {
               <p className="task-card__status-note">
                 Status: <strong style={{ color: '#57AE35' }}>Completed</strong>
               </p>
-              <p className="task-card__completed-note">{task.completedAgo}</p>
+              <p className="task-card__completed-note">{getCompletedAgoLabel(task)}</p>
             </div>
 
             <div
               className="task-card__thumb"
               aria-hidden="true"
-              style={{ background: task.thumbnail }}
+              style={{
+                background: task.imageUrl
+                  ? `center / cover no-repeat url(${task.imageUrl})`
+                  : toTaskImage(task),
+              }}
             />
           </article>
         ))}

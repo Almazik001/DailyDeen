@@ -6,8 +6,8 @@
   min-height: min(76vh, 600px);
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 20px 20px 28px;
+  gap: clamp(16px, 2.2vw, 22px);
+  padding: clamp(18px, 2.4vw, 24px);
 }
 
 .header {
@@ -15,6 +15,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -22,8 +23,9 @@
   display: inline-block;
   padding-bottom: 8px;
   color: #202430;
-  font-size: 1rem;
+  font-size: clamp(1.05rem, 2vw, 1.24rem);
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .title::after {
@@ -44,6 +46,19 @@
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.backButton:hover {
+  color: #e45d50;
+  transform: translateX(-1px);
+}
+
+.subtitle {
+  max-width: 64ch;
+  color: #8b94a5;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .toolbar {
@@ -65,7 +80,9 @@
 
 .tables {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 18px;
+  align-items: start;
 }
 
 .inlineAction {
@@ -92,6 +109,15 @@
   color: #8f98ab;
 }
 
+:global(:root[data-theme='soft-dark']) .title,
+:global(:root[data-theme='soft-dark']) .backButton {
+  color: #edf1f7;
+}
+
+:global(:root[data-theme='soft-dark']) .subtitle {
+  color: #a6afc0;
+}
+
 @media (max-width: 768px) {
   .panel {
     min-height: auto;
@@ -105,5 +131,11 @@
 
   .inlineAction {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .tables {
+    grid-template-columns: 1fr;
   }
 }

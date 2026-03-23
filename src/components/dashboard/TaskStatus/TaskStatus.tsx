@@ -1,16 +1,13 @@
+import type { ApiTask } from '../../../api/types'
+import { getCompletedAgoLabel } from '../../../features/tasks/dashboardData'
+import type { DashboardStatusItem } from '../../../features/tasks/dashboardData'
 import './TaskStatus.module.scss'
 
-type StatusItem = {
-  label: string
-  value: number
-  color: string
+type TaskStatusProps = {
+  items: DashboardStatusItem[]
+  totalTasks: number
+  completedTasks: ApiTask[]
 }
-
-const statusItems: StatusItem[] = [
-  { label: 'Completed', value: 84, color: '#57AE35' },
-  { label: 'In Progress', value: 46, color: '#4A47F5' },
-  { label: 'Not Started', value: 13, color: '#E04B3F' },
-]
 
 function StatusPanelIcon() {
   return (
@@ -34,40 +31,78 @@ function StatusPanelIcon() {
   )
 }
 
-const TaskStatus = () => {
+const TaskStatus = ({ items, totalTasks, completedTasks }: TaskStatusProps) => {
+  const completedCount = items.find((item) => item.label === 'Completed')?.count ?? 0
+  const summary =
+    totalTasks === 0
+      ? 'No tasks yet. Add your first task to track progress.'
+      : `${completedCount} of ${totalTasks} tasks completed`
+
   return (
     <section className="dashboard-panel status-panel">
-      <div className="panel-head">
+      <div className="panel-head panel-head--stacked">
         <div className="panel-title">
           <StatusPanelIcon />
           <h2>Task Status</h2>
         </div>
+        <p className="status-panel__summary">{summary}</p>
       </div>
 
-      <div className="status-grid">
-        {statusItems.map((item) => (
+      <div className="status-list">
+        {items.map((item) => (
           <div className="status-card" key={item.label}>
-            <div
-              className="status-ring"
-              aria-label={`${item.label}: ${item.value}%`}
-              role="img"
-              style={{
-                background: `conic-gradient(${item.color} ${item.value}%, #E2E6EE ${item.value}% 100%)`,
-              }}
-            >
-              <div className="status-ring__center">{item.value}%</div>
+            <div className="status-card__head">
+              <div className="status-card__label">
+                <span
+                  className="status-card__dot"
+                  aria-hidden="true"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span>{item.label}</span>
+              </div>
+
+              <div className="status-card__value">
+                <strong>{item.count}</strong>
+                <span>{item.value}%</span>
+              </div>
             </div>
 
-            <div className="status-card__label">
+            <div className="status-card__bar" aria-hidden="true">
               <span
-                className="status-card__dot"
-                aria-hidden="true"
-                style={{ backgroundColor: item.color }}
+                className="status-card__bar-fill"
+                style={{
+                  backgroundColor: item.color,
+                  width: `${item.value}%`,
+                }}
               />
-              <span>{item.label}</span>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="status-panel__recent">
+        <div className="status-panel__recent-head">
+          <h3 className="status-panel__recent-title">Recently completed</h3>
+          {completedTasks.length ? (
+            <span className="status-panel__recent-count">{completedTasks.length}</span>
+          ) : null}
+        </div>
+
+        {completedTasks.length ? (
+          <div className="status-panel__recent-list">
+            {completedTasks.map((task) => (
+              <article className="status-activity" key={task.id}>
+                <div className="status-activity__body">
+                  <h4 className="status-activity__title">{task.title}</h4>
+                  <p className="status-activity__meta">{getCompletedAgoLabel(task)}</p>
+                </div>
+                <span className="status-activity__badge">Done</span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="status-panel__empty">Completed tasks will show up here.</p>
+        )}
       </div>
     </section>
   )

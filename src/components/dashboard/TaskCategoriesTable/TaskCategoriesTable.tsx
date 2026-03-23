@@ -1,13 +1,17 @@
 import styles from './TaskCategoriesTable.module.scss'
 
-export type CategoryRow = {
+export type LookupRow = {
   id: string
-  label: string
+  name: string
 }
 
 type TaskCategoriesTableProps = {
-  rows: CategoryRow[]
-  onEdit: (row: CategoryRow) => void
+  title: string
+  columnLabel: string
+  rows: LookupRow[]
+  addLabel: string
+  onAdd: () => void
+  onEdit: (row: LookupRow) => void
   onDelete: (rowId: string) => void
 }
 
@@ -31,56 +35,75 @@ function DeleteIcon() {
 }
 
 const TaskCategoriesTable = ({
+  title,
+  columnLabel,
   rows,
+  addLabel,
+  onAdd,
   onEdit,
   onDelete,
 }: TaskCategoriesTableProps) => {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>Task Status</h3>
+        <h3 className={styles.sectionTitle}>{title}</h3>
+        <button
+          className={`${styles.actionButton} ${styles.headerButton}`}
+          type="button"
+          onClick={onAdd}
+        >
+          {addLabel}
+        </button>
       </div>
 
       <div className={styles.tableShell}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>SN</th>
-              <th>Task Status</th>
-              <th>Action</th>
+              <th scope="col">SN</th>
+              <th scope="col">{columnLabel}</th>
+              <th scope="col">Action</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.id}>
-                <td>{index + 1}</td>
-                <td>{row.label}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <button
-                      className={styles.actionButton}
-                      type="button"
-                      onClick={() => {
-                        onEdit(row)
-                      }}
-                    >
-                      <EditIcon />
-                      Edit
-                    </button>
-                    <button
-                      className={`${styles.actionButton} ${styles.deleteButton}`}
-                      type="button"
-                      onClick={() => {
-                        onDelete(row.id)
-                      }}
-                    >
-                      <DeleteIcon />
-                      Delete
-                    </button>
-                  </div>
+            {rows.length ? (
+              rows.map((row, index) => (
+                <tr key={row.id}>
+                  <td data-label="SN">{index + 1}</td>
+                  <td data-label={columnLabel}>{row.name}</td>
+                  <td className={styles.actionCell} data-label="Action">
+                    <div className={styles.actions}>
+                      <button
+                        className={`${styles.actionButton} ${styles.rowButton}`}
+                        type="button"
+                        onClick={() => {
+                          onEdit(row)
+                        }}
+                      >
+                        <EditIcon />
+                        Edit
+                      </button>
+                      <button
+                        className={`${styles.actionButton} ${styles.rowButton} ${styles.deleteButton}`}
+                        type="button"
+                        onClick={() => {
+                          onDelete(row.id)
+                        }}
+                      >
+                        <DeleteIcon />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr className={styles.emptyRow}>
+                <td className={styles.emptyCell} colSpan={3}>
+                  No items yet
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

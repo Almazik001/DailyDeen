@@ -1,129 +1,181 @@
-import { useMemo, useState } from 'react'
-import Button from '../../components/ui/Button/Button'
+import { useEffect, useMemo, useState } from 'react'
+import { getApiErrorMessage } from '../../api/apiClient'
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  updateCategory,
+} from '../../api/categories.api'
+import {
+  createPriority,
+  deletePriority,
+  getPriorities,
+  updatePriority,
+} from '../../api/priorities.api'
+import {
+  createStatus,
+  deleteStatus,
+  getStatuses,
+  updateStatus,
+} from '../../api/statuses.api'
+import type { LookupItem } from '../../api/types'
 import TaskCategoriesTable, {
-  type CategoryRow,
+  type LookupRow,
 } from '../../components/dashboard/TaskCategoriesTable/TaskCategoriesTable'
-import TaskPriorityTable from '../../components/dashboard/TaskPriorityTable/TaskPriorityTable'
-import TaskPriorityModal from '../../features/task-priority/TaskPriorityModal/TaskPriorityModal'
+import { clearTaskLookupsCache } from '../../features/tasks/taskLookups'
 import TaskStatusModal from '../../features/task-status/TaskStatusModal/TaskStatusModal'
 import styles from './TaskCategoriesPage.module.scss'
 
+type LookupEntity = 'category' | 'status' | 'priority'
+
 type CategoryModalState =
-  | { entity: null; mode: 'create' }
-  | { entity: 'status' | 'priority'; mode: 'create' | 'edit'; itemId?: string }
+  | { entity: null; mode: 'create'; item: null }
+  | { entity: LookupEntity; mode: 'create' | 'edit'; item: LookupItem | null }
 
-const initialStatuses: CategoryRow[] = [
-  { id: 'status-1', label: 'Completed' },
-  { id: 'status-2', label: 'In Progress' },
-  { id: 'status-3', label: 'Not Started' },
-]
-
-const initialPriorities: CategoryRow[] = [
-  { id: 'priority-1', label: 'Extreme' },
-  { id: 'priority-2', label: 'Moderate' },
-  { id: 'priority-3', label: 'Low' },
-]
+const emptyModalState: CategoryModalState = {
+  entity: null,
+  mode: 'create',
+  item: null,
+}
 
 const TaskCategoriesPage = () => {
-  const [modalState, setModalState] = useState<CategoryModalState>({
-    entity: null,
-    mode: 'create',
-  })
-  const [statuses, setStatuses] = useState<CategoryRow[]>(initialStatuses)
-  const [priorities, setPriorities] = useState<CategoryRow[]>(initialPriorities)
+  const [modalState, setModalState] = useState<CategoryModalState>(emptyModalState)
+  const [categories, setCategories] = useState<LookupItem[]>([])
+  const [statuses, setStatuses] = useState<LookupItem[]>([])
+  const [priorities, setPriorities] = useState<LookupItem[]>([])
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const currentStatusItem = useMemo(() => {
-    if (modalState.entity !== 'status' || modalState.mode !== 'edit') {
+  useEffect(() => {
+    const loadLookups = async () => {
+      try {
+        const [categoriesResponse, statusesResponse, prioritiesResponse] =
+          await Promise.all([getCategories(), getStatuses(), getPriorities()])
+
+        setCategories(categoriesResponse.categories)
+        setStatuses(statusesResponse.statuses)
+        setPriorities(prioritiesResponse.priorities)
+      } catch (error) {
+        setErrorMessage(getApiErrorMessage(error, 'Unable to load lookup data'))
+      }
+    }
+
+    void loadLookups()
+  }, [])
+
+  const modalConfig = useMemo(() => {
+    if (!modalState.entity) {
       return null
     }
 
-    return statuses.find((item) => item.id === modalState.itemId) ?? null
-  }, [modalState, statuses])
-
-  const currentPriorityItem = useMemo(() => {
-    if (modalState.entity !== 'priority' || modalState.mode !== 'edit') {
-      return null
+    if (modalState.entity === 'category') {
+      return {
+        title: modalState.mode === 'edit' ? 'Edit Category' : 'Add Category',
+        inputLabel: 'Category Name',
+        placeholder: 'Enter category name',
+      }
     }
 
-    return priorities.find((item) => item.id === modalState.itemId) ?? null
-  }, [modalState, priorities])
+    if (modalState.entity === 'status') {
+      return {
+        title: modalState.mode === 'edit' ? 'Edit Task Status' : 'Add Task Status',
+        inputLabel: 'Task Status Name',
+        placeholder: 'Enter task status',
+      }
+    }
 
-  const openStatusModal = (
-    mode: 'create' | 'edit',
-    item?: CategoryRow,
-  ) => {
-    setModalState({
-      entity: 'status',
-      mode,
-      itemId: item?.id,
-    })
-  }
+    return {
+      title: modalState.mode === 'edit' ? 'Edit Task Priority' : 'Add Task Priority',
+      inputLabel: 'Task Priority Name',
+      placeholder: 'Enter task priority',
+    }
+  }, [modalState.entity, modalState.mode])
 
-  const openPriorityModal = (
+  const openModal = (
+    entity: LookupEntity,
     mode: 'create' | 'edit',
-    item?: CategoryRow,
+    item: LookupItem | null = null,
   ) => {
-    setModalState({
-      entity: 'priority',
-      mode,
-      itemId: item?.id,
-    })
+    setErrorMessage('')
+    setModalState({ entity, mode, item })
   }
 
   const closeModal = () => {
-    setModalState({ entity: null, mode: 'create' })
+    setModalState(emptyModalState)
   }
 
-  const handleDelete = (entity: 'status' | 'priority', itemId: string) => {
-    if (entity === 'status') {
-      setStatuses((current) => current.filter((item) => item.id !== itemId))
-      return
-    }
+  const handleSubmit = async (value: string) => {
+    try {
+      if (modalState.entity === 'category') {
+        if (modalState.mode === 'create') {
+          const { category } = await createCategory(value)
+          setCategories((current) => [...current, category])
+        } else if (modalState.item) {
+          const { category } = await updateCategory(modalState.item.id, value)
+          setCategories((current) =>
+            current.map((item) => (item.id === category.id ? category : item)),
+          )
+        }
+      }
 
-    setPriorities((current) => current.filter((item) => item.id !== itemId))
+      if (modalState.entity === 'status') {
+        if (modalState.mode === 'create') {
+          const { status } = await createStatus(value)
+          setStatuses((current) => [...current, status])
+        } else if (modalState.item) {
+          const { status } = await updateStatus(modalState.item.id, value)
+          setStatuses((current) =>
+            current.map((item) => (item.id === status.id ? status : item)),
+          )
+        }
+      }
+
+      if (modalState.entity === 'priority') {
+        if (modalState.mode === 'create') {
+          const { priority } = await createPriority(value)
+          setPriorities((current) => [...current, priority])
+        } else if (modalState.item) {
+          const { priority } = await updatePriority(modalState.item.id, value)
+          setPriorities((current) =>
+            current.map((item) => (item.id === priority.id ? priority : item)),
+          )
+        }
+      }
+
+      clearTaskLookupsCache()
+      closeModal()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to save lookup item'))
+    }
   }
 
-  const handleStatusSubmit = (value: string) => {
-    if (modalState.entity !== 'status') {
-      return
-    }
+  const handleDelete = async (entity: LookupEntity, itemId: string) => {
+    try {
+      if (entity === 'category') {
+        await deleteCategory(itemId)
+        setCategories((current) => current.filter((item) => item.id !== itemId))
+      }
 
-    if (modalState.mode === 'create') {
-      setStatuses((current) => [
-        ...current,
-        { id: `status-${Date.now()}`, label: value },
-      ])
-    } else if (modalState.itemId) {
-      setStatuses((current) =>
-        current.map((item) =>
-          item.id === modalState.itemId ? { ...item, label: value } : item,
-        ),
-      )
-    }
+      if (entity === 'status') {
+        await deleteStatus(itemId)
+        setStatuses((current) => current.filter((item) => item.id !== itemId))
+      }
 
-    closeModal()
+      if (entity === 'priority') {
+        await deletePriority(itemId)
+        setPriorities((current) => current.filter((item) => item.id !== itemId))
+      }
+
+      clearTaskLookupsCache()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, 'Unable to delete lookup item'))
+    }
   }
 
-  const handlePrioritySubmit = (value: string) => {
-    if (modalState.entity !== 'priority') {
-      return
-    }
-
-    if (modalState.mode === 'create') {
-      setPriorities((current) => [
-        ...current,
-        { id: `priority-${Date.now()}`, label: value },
-      ])
-    } else if (modalState.itemId) {
-      setPriorities((current) =>
-        current.map((item) =>
-          item.id === modalState.itemId ? { ...item, label: value } : item,
-        ),
-      )
-    }
-
-    closeModal()
-  }
+  const toRows = (items: LookupItem[]): LookupRow[] =>
+    items.map((item) => ({
+      id: item.id,
+      name: item.name,
+    }))
 
   return (
     <div className={styles.page}>
@@ -143,67 +195,73 @@ const TaskCategoriesPage = () => {
           </button>
         </div>
 
-        <div className={styles.toolbar}>
-          <Button
-            className={styles.primaryButton}
-            onClick={() => {
-              openStatusModal('create')
-            }}
-          >
-            Add Category
-          </Button>
-        </div>
+        {errorMessage ? <p className={styles.subtitle}>{errorMessage}</p> : null}
 
         <div className={styles.tables}>
           <TaskCategoriesTable
-            rows={statuses}
+            addLabel="+ Add Category"
+            columnLabel="Task Category"
+            rows={toRows(categories)}
+            title="Task Categories"
+            onAdd={() => {
+              openModal('category', 'create')
+            }}
             onEdit={(row) => {
-              openStatusModal('edit', row)
+              const item = categories.find((category) => category.id === row.id) ?? null
+              openModal('category', 'edit', item)
             }}
             onDelete={(rowId) => {
-              handleDelete('status', rowId)
+              void handleDelete('category', rowId)
             }}
           />
 
-          <div className={styles.inlineAction}>
-            <button
-              className={styles.textAction}
-              type="button"
-              onClick={() => {
-                openPriorityModal('create')
-              }}
-            >
-              <span>+</span>
-              Add Task Priority
-            </button>
-          </div>
-
-          <TaskPriorityTable
-            rows={priorities}
+          <TaskCategoriesTable
+            addLabel="+ Add Status"
+            columnLabel="Task Status"
+            rows={toRows(statuses)}
+            title="Task Status"
+            onAdd={() => {
+              openModal('status', 'create')
+            }}
             onEdit={(row) => {
-              openPriorityModal('edit', row)
+              const item = statuses.find((status) => status.id === row.id) ?? null
+              openModal('status', 'edit', item)
             }}
             onDelete={(rowId) => {
-              handleDelete('priority', rowId)
+              void handleDelete('status', rowId)
+            }}
+          />
+
+          <TaskCategoriesTable
+            addLabel="+ Add Priority"
+            columnLabel="Task Priority"
+            rows={toRows(priorities)}
+            title="Task Priority"
+            onAdd={() => {
+              openModal('priority', 'create')
+            }}
+            onEdit={(row) => {
+              const item = priorities.find((priority) => priority.id === row.id) ?? null
+              openModal('priority', 'edit', item)
+            }}
+            onDelete={(rowId) => {
+              void handleDelete('priority', rowId)
             }}
           />
         </div>
       </section>
 
       <TaskStatusModal
-        isOpen={modalState.entity === 'status'}
+        isOpen={Boolean(modalState.entity && modalConfig)}
+        title={modalConfig?.title ?? 'Edit'}
+        inputLabel={modalConfig?.inputLabel ?? 'Name'}
+        placeholder={modalConfig?.placeholder ?? 'Enter value'}
         mode={modalState.mode}
-        initialValue={currentStatusItem?.label ?? ''}
+        initialValue={modalState.item?.name ?? ''}
         onClose={closeModal}
-        onSubmit={handleStatusSubmit}
-      />
-
-      <TaskPriorityModal
-        isOpen={modalState.entity === 'priority'}
-        mode={modalState.mode}
-        initialValue={currentPriorityItem?.label ?? ''}
-        onClose={closeModal}
-        onSubmit={handlePrioritySubmit}
+        onSubmit={(value) => {
+          void handleSubmit(value)
+        }}
       />
     </div>
   )

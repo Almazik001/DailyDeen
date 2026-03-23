@@ -11,6 +11,8 @@ type SidebarProps = {
   onLogout: () => void
   currentUser: StoredUser | null
   currentLanguage: LanguageMode
+  isOpen: boolean
+  onClose: () => void
 }
 
 function ProfileAvatar({
@@ -18,7 +20,7 @@ function ProfileAvatar({
   avatarUrl,
 }: {
   letter: string
-  avatarUrl?: string
+  avatarUrl?: string | null
 }) {
   return (
     <div className="sidebar__avatar" aria-hidden="true">
@@ -137,6 +139,31 @@ function LogoutIcon() {
   )
 }
 
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="m5 5 10 10M15 5 5 15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+const closeLabelMap: Record<LanguageMode, string> = {
+  english: 'Close menu',
+  russian: 'Close menu',
+  kazakh: 'Close menu',
+}
+
+const menuTitleMap: Record<LanguageMode, string> = {
+  english: 'Menu',
+  russian: 'Menu',
+  kazakh: 'Menu',
+}
+
 function SidebarIcon({ view }: { view: AppView }) {
   if (view === 'dashboard') return <DashboardIcon />
   if (view === 'vital-task') return <VitalIcon />
@@ -153,6 +180,8 @@ const Sidebar = ({
   onLogout,
   currentUser,
   currentLanguage,
+  isOpen,
+  onClose,
 }: SidebarProps) => {
   const displayName = currentUser?.username ?? 'guest'
   const displayEmail = currentUser?.email ?? 'guest@example.com'
@@ -160,7 +189,19 @@ const Sidebar = ({
   const avatarUrl = currentUser?.avatarUrl
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' is-open' : ''}`} id="app-sidebar">
+      <div className="sidebar__mobile-head">
+        <span className="sidebar__mobile-title">{menuTitleMap[currentLanguage]}</span>
+        <button
+          aria-label={closeLabelMap[currentLanguage]}
+          className="sidebar__close"
+          type="button"
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </button>
+      </div>
+
       <div className="sidebar__profile">
         <ProfileAvatar avatarUrl={avatarUrl} letter={avatarLetter} />
         <div className="sidebar__name">{displayName}</div>

@@ -41,7 +41,7 @@ const SignInPage = ({
   const [rememberMe, setRememberMe] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const username = values.username.trim()
     const password = values.password
 
@@ -50,10 +50,10 @@ const SignInPage = ({
       return
     }
 
-    const result = loginUser(username, password, rememberMe)
+    const result = await loginUser(username, password, rememberMe)
 
     if (!result.success) {
-      setErrorMessage(t(language, result.messageKey))
+      setErrorMessage(result.message)
       return
     }
 

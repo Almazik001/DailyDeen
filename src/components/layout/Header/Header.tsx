@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { StoredUser } from '../../../features/auth/authStorage'
 import type { LanguageMode } from '../../../features/settings/settingsStorage'
 import { t } from '../../../features/settings/translations'
+import { useCurrentDate } from '../../../hooks/useCurrentDate'
 import BellIcon from '../../../assets/icons/bell-icon.svg'
 import Calendar from '../../../assets/icons/calendar-icon.svg'
 import Search from '../../../assets/icons/search-icon.svg'
+import DateWidget from '../DateWidget/DateWidget'
 import Button from '../../ui/Button/Button'
 import Input from '../../ui/Input/Input'
 import type { AppView } from '../Sidebar/navigation'
 import { headerBrandMap } from '../Sidebar/navigation'
-import './Header.module.scss'
 
 type HeaderProps = {
   currentView: AppView
   currentLanguage: LanguageMode
+  currentUser: StoredUser | null
+  isSidebarOpen: boolean
+  onSidebarToggle: () => void
 }
 
 type HeaderPopover = 'notifications' | 'calendar' | null
@@ -88,29 +93,85 @@ function BackArrowIcon() {
   )
 }
 
-const Header = ({ currentView, currentLanguage }: HeaderProps) => {
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M3.5 5h13M3.5 10h13M3.5 15h13"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function WaveIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="header-welcome__wave"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12.8 3.7c-.4 0-.8.3-.8.8v6" />
+      <path d="M15.6 5.5c-.4 0-.8.3-.8.8v4.4" />
+      <path d="M18.4 7.6c-.4 0-.8.3-.8.8v3.1" />
+      <path d="M10 2.8c-.4 0-.8.3-.8.8v7.1l-1.7-1.5a1.5 1.5 0 0 0-2.1.1c-.5.6-.5 1.5.1 2.1l4.8 5.3a3.8 3.8 0 0 0 2.8 1.2h2.2c2.4 0 4.4-2 4.4-4.4v-3.3" />
+    </svg>
+  )
+}
+
+const menuLabelMap: Record<LanguageMode, string> = {
+  english: 'Open menu',
+  russian: 'Open menu',
+  kazakh: 'Open menu',
+}
+
+const Header = ({
+  currentView,
+  currentLanguage,
+  currentUser,
+  isSidebarOpen,
+  onSidebarToggle,
+}: HeaderProps) => {
   const brand = headerBrandMap[currentView]
+  const isDashboardView = currentView === 'dashboard'
   const [openPopover, setOpenPopover] = useState<HeaderPopover>(null)
   const toolsRef = useRef<HTMLDivElement | null>(null)
+  const currentDate = useCurrentDate()
+  const welcomeName = currentUser?.firstName?.trim() || currentUser?.username || 'guest'
 
   const formattedDate = useMemo(() => {
-    const date = new Date('2023-06-20T10:00:00')
     const locale = localeMap[currentLanguage]
 
     return {
-      weekday: new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date),
-      shortDate: new Intl.DateTimeFormat(locale).format(date),
       longDate: new Intl.DateTimeFormat(locale, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
-      }).format(date),
+      }).format(currentDate),
       monthLabel: new Intl.DateTimeFormat(locale, {
         month: 'long',
         year: 'numeric',
-      }).format(date),
+      }).format(currentDate),
     }
-  }, [currentLanguage])
+  }, [currentDate, currentLanguage])
+
+  const dashboardDate = useMemo(() => {
+    return {
+      weekday: new Intl.DateTimeFormat('ru-RU', { weekday: 'long' }).format(currentDate),
+      shortDate: new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(currentDate),
+    }
+  }, [currentDate])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -139,11 +200,34 @@ const Header = ({ currentView, currentLanguage }: HeaderProps) => {
   }
 
   return (
-    <header className="header container">
-      <div className="header-logo" aria-label={currentView}>
-        <span>{brand.accent}</span>
-        {brand.rest}
+    <header className={`header container${isDashboardView ? ' header--dashboard' : ''}`}>
+      <div className="header-brand-row">
+        <button
+          aria-controls="app-sidebar"
+          aria-expanded={isSidebarOpen}
+          aria-label={menuLabelMap[currentLanguage]}
+          className={`header-menu-toggle${isSidebarOpen ? ' is-active' : ''}`}
+          type="button"
+          onClick={onSidebarToggle}
+        >
+          <MenuIcon />
+        </button>
+
+        <div className="header-logo" aria-label={currentView}>
+          <span>{brand.accent}</span>
+          {brand.rest}
+        </div>
       </div>
+
+      {isDashboardView ? (
+        <div className="header-welcome">
+          <p className="header-welcome__eyebrow">{formattedDate.longDate}</p>
+          <h1 className="header-welcome__title">
+            {t(currentLanguage, 'dashboard.welcome', { name: welcomeName })}
+            <WaveIcon />
+          </h1>
+        </div>
+      ) : null}
 
       <form
         className="header-form"
@@ -151,13 +235,23 @@ const Header = ({ currentView, currentLanguage }: HeaderProps) => {
           event.preventDefault()
         }}
       >
-        <Input placeholder={t(currentLanguage, 'header.search')} />
-        <Button aria-label="Search">
-          <img src={Search} alt="search icon" style={{ width: 14, height: 14 }} />
-        </Button>
+        <div className="header-search">
+          <span className="header-search__icon" aria-hidden="true">
+            <img src={Search} alt="" />
+          </span>
+          <Input
+            className="header-search__input"
+            placeholder={t(currentLanguage, 'header.search')}
+            type="search"
+          />
+        </div>
       </form>
 
       <div className="header-tools" ref={toolsRef}>
+        <div className="header-date">
+          <DateWidget date={dashboardDate.shortDate} weekday={dashboardDate.weekday} />
+        </div>
+
         <div className="header-button">
           <div className="header-popover">
             <Button
@@ -323,11 +417,6 @@ const Header = ({ currentView, currentLanguage }: HeaderProps) => {
               </div>
             ) : null}
           </div>
-        </div>
-
-        <div className="header-data">
-          <p>{formattedDate.weekday}</p>
-          <span>{formattedDate.shortDate}</span>
         </div>
       </div>
     </header>

@@ -1,153 +1,97 @@
-type StoredUser = {
-  firstName: string
-  lastName: string
-  username: string
-  email: string
-  password: string
-  contactNumber?: string
-  position?: string
-  avatarUrl?: string
+import { getApiErrorMessage } from '../../api/apiClient'
+import { getCurrentUser as getCurrentUserRequest, login, register } from '../../api/auth.api'
+import { getStoredSession, getStoredUserSnapshot, persistAuthSession, persistUserSnapshot, clearAuthSession, type AuthSession } from '../../api/session'
+import type { ApiUser, RegisterPayload, UpdateCurrentUserPayload } from '../../api/types'
+import { updateCurrentUser as updateCurrentUserRequest } from '../../api/users.api'
+
+type StoredUser = ApiUser
+
+export function getStoredUser() {
+  return getStoredUserSnapshot()
 }
 
-type AuthSession = {
-  username: string
-  rememberMe: boolean
-}
+export async function registerUser(user: RegisterPayload) {
+  try {
+    const result = await register(user)
 
-type LoginFailureKey = 'auth.registerFirst' | 'auth.invalidCredentials'
-
-const AUTH_USER_KEY = 'dailydeen.auth.user'
-const AUTH_SESSION_KEY = 'dailydeen.auth.session'
-
-function isBrowser() {
-  return typeof window !== 'undefined'
-}
-
-function safeRead<T>(key: string): T | null {
-  if (!isBrowser()) {
-    return null
+    return {
+      success: true as const,
+      user: result.user,
+    }
+  } catch (error) {
+    return {
+      success: false as const,
+      message: getApiErrorMessage(error, 'Unable to create account'),
+    }
   }
+}
 
-  const rawValue = window.localStorage.getItem(key)
+export function getSession() {
+  return getStoredSession()
+}
 
-  if (!rawValue) {
+export function getAuthenticatedUser() {
+  return getStoredUserSnapshot()
+}
+
+export async function loginUser(
+  username: string,
+  password: string,
+  rememberMe: boolean,
+) {
+  try {
+    const result = await login({
+      username,
+      password,
+    })
+
+    persistAuthSession(result.user, result.token, rememberMe)
+
+    return {
+      success: true as const,
+      user: result.user,
+    }
+  } catch (error) {
+    return {
+      success: false as const,
+      message: getApiErrorMessage(error, 'Unable to sign in'),
+    }
+  }
+}
+
+export async function hydrateAuthenticatedUser() {
+  const session = getStoredSession()
+
+  if (!session?.token) {
     return null
   }
 
   try {
-    return JSON.parse(rawValue) as T
+    const { user } = await getCurrentUserRequest()
+    persistUserSnapshot(user)
+    return user
+  } catch {
+    clearAuthSession()
+    return null
+  }
+}
+
+export async function updateStoredUserProfile(profile: UpdateCurrentUserPayload) {
+  try {
+    const { user } = await updateCurrentUserRequest(profile)
+    persistUserSnapshot(user)
+    return user
   } catch {
     return null
   }
 }
 
-function safeWrite<T>(key: string, value: T) {
-  if (!isBrowser()) {
-    return
-  }
-
-  window.localStorage.setItem(key, JSON.stringify(value))
-}
-
-export function getStoredUser() {
-  return safeRead<StoredUser>(AUTH_USER_KEY)
-}
-
-export function registerUser(user: StoredUser) {
-  safeWrite(AUTH_USER_KEY, user)
-}
-
-export function getSession() {
-  return safeRead<AuthSession>(AUTH_SESSION_KEY)
-}
-
-export function getAuthenticatedUser() {
-  const session = getSession()
-  const storedUser = getStoredUser()
-
-  if (!session || !storedUser) {
-    return null
-  }
-
-  if (session.username !== storedUser.username) {
-    return null
-  }
-
-  return storedUser
-}
-
-export function loginUser(
-  username: string,
-  password: string,
-  rememberMe: boolean,
-) {
-  const storedUser = getStoredUser()
-
-  if (!storedUser) {
-    return {
-      success: false as const,
-      messageKey: 'auth.registerFirst' as LoginFailureKey,
-    }
-  }
-
-  const isUsernameValid = storedUser.username === username.trim()
-  const isPasswordValid = storedUser.password === password
-
-  if (!isUsernameValid || !isPasswordValid) {
-    return {
-      success: false as const,
-      messageKey: 'auth.invalidCredentials' as LoginFailureKey,
-    }
-  }
-
-  safeWrite(AUTH_SESSION_KEY, {
-    username: storedUser.username,
-    rememberMe,
-  })
-
-  return {
-    success: true as const,
-    user: storedUser,
-  }
-}
-
-export function updateStoredUserProfile(profile: Partial<StoredUser>) {
-  const storedUser = getStoredUser()
-
-  if (!storedUser) {
-    return null
-  }
-
-  const updatedUser = {
-    ...storedUser,
-    ...profile,
-  }
-
-  safeWrite(AUTH_USER_KEY, updatedUser)
-
-  const session = getSession()
-
-  if (session && session.username !== updatedUser.username) {
-    safeWrite(AUTH_SESSION_KEY, {
-      ...session,
-      username: updatedUser.username,
-    })
-  }
-
-  return updatedUser
-}
-
 export function logoutUser() {
-  if (!isBrowser()) {
-    return
-  }
-
-  window.localStorage.removeItem(AUTH_SESSION_KEY)
+  clearAuthSession()
 }
 
 export function isAuthenticated() {
-  return Boolean(getSession())
+  return Boolean(getStoredSession()?.token)
 }
 
-export type { StoredUser, AuthSession, LoginFailureKey }
-
+export type { StoredUser, AuthSession }

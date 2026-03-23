@@ -1,101 +1,291 @@
 .section {
   display: grid;
-  gap: 10px;
+  min-width: 0;
+  gap: 14px;
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .sectionTitle {
   color: #202430;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .tableShell {
   overflow: hidden;
-  border: 1px solid #d9dee8;
-  border-radius: 10px;
-  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(239, 115, 104, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.98));
+  box-shadow: 0 18px 34px rgba(36, 48, 86, 0.06);
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table th,
 .table td {
-  padding: 10px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid #edf0f5;
   text-align: left;
-  font-size: 0.74rem;
+  font-size: 0.8rem;
 }
 
 .table th {
-  color: #5c6473;
+  color: #6e7788;
   font-weight: 700;
-  background: #fafbfd;
+  background: rgba(250, 251, 253, 0.88);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
 }
 
 .table tbody tr:last-child td {
   border-bottom: 0;
 }
 
+.table tbody tr {
+  transition:
+    background-color 0.22s ease,
+    transform 0.22s ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(247, 249, 255, 0.92);
+}
+
 .table td {
   color: #2c3340;
+}
+
+.table td:first-child {
+  width: 72px;
+  color: #8f98ab;
+  font-weight: 700;
+}
+
+.table td:nth-child(2) {
+  font-weight: 600;
+}
+
+.actionCell {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
 .actionButton {
-  min-width: 58px;
-  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 8px;
-  border-radius: 5px;
+  gap: 6px;
   color: #fff;
   background: linear-gradient(180deg, #ef733d 0%, #dd582d 100%);
-  box-shadow: 0 10px 18px rgba(221, 88, 45, 0.18);
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 700;
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .actionButton svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .actionButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 20px rgba(221, 88, 45, 0.22);
+  box-shadow: 0 14px 24px rgba(221, 88, 45, 0.22);
+  filter: saturate(1.03);
+}
+
+.headerButton {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(221, 88, 45, 0.18);
+  font-size: 0.78rem;
+}
+
+.rowButton {
+  min-width: 88px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  box-shadow: 0 10px 18px rgba(221, 88, 45, 0.16);
+  font-size: 0.74rem;
 }
 
 .deleteButton {
   background: linear-gradient(180deg, #ef8061 0%, #de5f44 100%);
 }
 
+:global(:root[data-theme='soft-dark']) .sectionTitle {
+  color: #edf1f7;
+}
+
+:global(:root[data-theme='soft-dark']) .tableShell {
+  border-color: #343d4d;
+  background:
+    radial-gradient(circle at top right, rgba(239, 115, 104, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(35, 42, 53, 0.98), rgba(29, 35, 44, 0.98));
+  box-shadow: 0 18px 34px rgba(7, 10, 18, 0.22);
+}
+
+:global(:root[data-theme='soft-dark']) .table th {
+  background: rgba(22, 27, 36, 0.82);
+  color: #aeb8ca;
+  border-bottom-color: #343d4d;
+}
+
+:global(:root[data-theme='soft-dark']) .table td {
+  color: #edf1f7;
+  border-bottom-color: #343d4d;
+}
+
+:global(:root[data-theme='soft-dark']) .table td:first-child {
+  color: #9aa4b7;
+}
+
+:global(:root[data-theme='soft-dark']) .table tbody tr:hover {
+  background: rgba(39, 46, 58, 0.72);
+}
+
+.emptyCell {
+  padding: 18px 16px !important;
+  color: #8a93a4 !important;
+  text-align: center !important;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .table th,
   .table td {
-    padding: 9px 10px;
-    font-size: 0.7rem;
+    padding: 12px;
   }
 
   .actions {
     gap: 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tableShell {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .table,
+  .table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #dde3ee;
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at top right, rgba(239, 115, 104, 0.05), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.98));
+    box-shadow: 0 16px 30px rgba(36, 48, 86, 0.06);
+  }
+
+  .table td {
+    display: grid;
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 0;
+    border-bottom: 0;
+    font-size: 0.84rem;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    color: #8e97a9;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .table td:first-child {
+    width: auto;
+  }
+
+  .actionCell {
+    width: auto;
+    white-space: normal;
+  }
+
+  .actions {
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .rowButton {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .emptyRow {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .emptyCell {
+    display: block !important;
+    padding: 18px 16px !important;
+    border: 1px dashed #d5dce8 !important;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  :global(:root[data-theme='soft-dark']) .table tr {
+    border-color: #343d4d;
+    background:
+      radial-gradient(circle at top right, rgba(239, 115, 104, 0.08), transparent 34%),
+      linear-gradient(180deg, rgba(35, 42, 53, 0.98), rgba(29, 35, 44, 0.98));
+    box-shadow: 0 18px 34px rgba(7, 10, 18, 0.22);
+  }
+
+  :global(:root[data-theme='soft-dark']) .table td::before {
+    color: #9ca7ba;
+  }
+
+  :global(:root[data-theme='soft-dark']) .emptyCell {
+    border-color: #3a4454 !important;
+    background: rgba(25, 32, 42, 0.88);
+    color: #a6afc0 !important;
   }
 }

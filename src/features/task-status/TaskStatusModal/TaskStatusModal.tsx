@@ -7,6 +7,9 @@ import styles from './TaskStatusModal.module.scss'
 type TaskStatusModalProps = {
   isOpen: boolean
   mode: 'create' | 'edit'
+  title: string
+  inputLabel: string
+  placeholder: string
   initialValue: string
   onClose: () => void
   onSubmit: (value: string) => void
@@ -15,6 +18,9 @@ type TaskStatusModalProps = {
 const TaskStatusModal = ({
   isOpen,
   mode,
+  title,
+  inputLabel,
+  placeholder,
   initialValue,
   onClose,
   onSubmit,
@@ -39,7 +45,6 @@ const TaskStatusModal = ({
     onSubmit(nextValue)
   }
 
-  const title = mode === 'edit' ? 'Edit Task Status' : 'Add Task Status'
   const submitLabel = mode === 'edit' ? 'Update' : 'Create'
 
   return (
@@ -58,10 +63,10 @@ const TaskStatusModal = ({
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.frame}>
           <label className={styles.field}>
-            <span className={styles.label}>Task Status Name</span>
+            <span className={styles.label}>{inputLabel}</span>
             <Input
               className={styles.input}
-              placeholder="Enter task status"
+              placeholder={placeholder}
               value={value}
               onChange={(event) => {
                 setValue(event.target.value)

@@ -1,6 +1,7 @@
 .form {
   display: grid;
-  gap: 18px;
+  min-width: 0;
+  gap: clamp(16px, 2.4vw, 18px);
 }
 
 .fields {
@@ -62,13 +63,13 @@
 .input {
   width: 100%;
   min-width: 0;
-  height: 56px !important;
-  padding-left: 54px !important;
+  height: clamp(50px, 7vw, 56px) !important;
+  padding: 0 16px 0 54px !important;
   border: 1px solid rgba(48, 56, 74, 0.2) !important;
   border-radius: 14px !important;
   background: rgba(255, 255, 255, 0.7) !important;
   box-shadow: none !important;
-  font-size: 0.95rem !important;
+  font-size: clamp(0.92rem, 1.8vw, 0.95rem) !important;
   font-weight: 500 !important;
   transition:
     border-color 0.24s ease,
@@ -86,6 +87,7 @@
 
 .checkbox {
   margin-top: -4px;
+  max-width: 100%;
   opacity: 0;
   animation: authFieldRise 0.64s 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -94,6 +96,7 @@
   margin: -4px 0 0;
   color: #da5e55;
   font-size: 0.9rem;
+  line-height: 1.45;
   font-weight: 600;
   opacity: 0;
   animation: authErrorReveal 0.34s ease forwards;
@@ -101,6 +104,7 @@
 
 .submitButton {
   width: auto !important;
+  max-width: 100%;
   min-width: 144px;
   height: 52px !important;
   padding: 0 28px;
@@ -130,6 +134,8 @@
   margin: 0;
   color: #525969;
   font-size: 0.98rem;
+  line-height: 1.5;
+  text-wrap: balance;
   opacity: 0;
   animation: authFieldRise 0.64s 0.96s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -169,6 +175,16 @@
   }
 }
 
+@media (max-width: 768px) {
+  .fields {
+    gap: 14px;
+  }
+
+  .checkbox {
+    margin-top: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .input {
     height: 50px !important;
@@ -178,6 +194,32 @@
   .submitButton {
     width: 100% !important;
     justify-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .icon {
+    left: 14px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .input {
+    padding-left: 46px !important;
+  }
+
+  .checkbox {
+    align-items: flex-start;
+  }
+
+  .submitButton {
+    min-width: 0;
+    height: 48px !important;
+    border-radius: 14px !important;
+  }
+
+  .footer {
+    font-size: 0.94rem;
   }
 }
 

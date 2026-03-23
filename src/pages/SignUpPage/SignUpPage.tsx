@@ -67,7 +67,7 @@ const SignUpPage = ({
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const requiredFields = [
       values.firstName,
       values.lastName,
@@ -92,13 +92,18 @@ const SignUpPage = ({
       return
     }
 
-    registerUser({
+    const result = await registerUser({
       firstName: values.firstName.trim(),
       lastName: values.lastName.trim(),
       username: values.username.trim(),
       email: values.email.trim(),
       password: values.password,
     })
+
+    if (!result.success) {
+      setErrorMessage(result.message)
+      return
+    }
 
     setErrorMessage('')
     onRegisterSuccess()
